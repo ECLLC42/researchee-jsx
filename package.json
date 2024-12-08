@@ -1,0 +1,50 @@
+{
+  "name": "brilliance-research",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 2865",
+    "build": "next build",
+    "start": "next start -p 2865",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@ai-sdk/openai": "^1.0.7",
+    "@heroicons/react": "^2.2.0",
+    "@vercel/analytics": "^1.4.1",
+    "@vercel/blob": "^0.27.0",
+    "ai": "^4.0.13",
+    "axios": "^1.7.9",
+    "eventsource-parser": "^3.0.0",
+    "fast-xml-parser": "^4.5.0",
+    "framer-motion": "^11.13.1",
+    "nanoid": "^5.0.9",
+    "next": "^15.0.4",
+    "openai": "^4.76.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-markdown": "^9.0.1",
+    "vercel-ai": "^0.0.0",
+    "zod": "^3.23.8",
+    "zod-to-json-schema": "^3.23.5"
+  },
+  "engines": {
+    "node": ">=18.17.0"
+  },
+  "devDependencies": {
+    "@types/react": "19.0.1",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.16",
+    "typescript": "5.7.2",
+    "webpack": "^5.97.1"
+  },
+  "description": "This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).",
+  "main": "postcss.config.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
