@@ -31,7 +31,7 @@ export default function ChatMessage({ message, articles }: ChatMessageProps) {
     <MotionDiv
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`flex flex-col gap-4 p-6 ${
+      className={`flex flex-col gap-4 p-6 text-white ${
         isAssistant ? 'bg-gray-900' : isSystem ? 'bg-gray-800' : 'bg-transparent'
       }`}
     >
@@ -50,7 +50,7 @@ export default function ChatMessage({ message, articles }: ChatMessageProps) {
           )}
         </div>
 
-        <div className="flex-1 prose prose-invert max-w-none">
+        <div className="flex-1 prose prose-invert max-w-none prose-white">
           <ReactMarkdown>{message.content}</ReactMarkdown>
         </div>
       </div>

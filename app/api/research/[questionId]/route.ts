@@ -3,10 +3,10 @@ import { getResearchData } from '@/lib/utils/storage';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { questionId: string } }
+  context: { params: { questionId: string } }
 ) {
   try {
-    const { questionId } = params;
+    const { questionId } = context.params;
     const researchData = await getResearchData(questionId);
     
     return NextResponse.json({
