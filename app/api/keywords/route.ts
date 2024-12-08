@@ -1,7 +1,7 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { extractKeywords } from '@/lib/utils/keywords';
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const { optimizedQuestion } = await request.json();
 
@@ -13,17 +13,8 @@ export async function POST(request: Request) {
     }
 
     const keywords = await extractKeywords(optimizedQuestion);
-
-    if (!keywords.length) {
-      return NextResponse.json(
-        { error: 'Failed to extract keywords' }, 
-        { status: 500 }
-      );
-    }
-
     return NextResponse.json({ keywords });
   } catch (error) {
-    console.error('Error in keywords route:', error);
     return NextResponse.json(
       { error: 'Failed to extract keywords' }, 
       { status: 500 }
