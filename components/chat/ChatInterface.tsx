@@ -34,7 +34,7 @@ export default function ChatInterface() {
       isFetchingArticles,
       messagesCount: messages.length
     });
-  }, [articles, questionId, error, isLoading, isFetchingArticles, messages.length]);
+  }, [articles, questionId, error, isLoading, isFetchingArticles, messages.length, hasArticles]);
 
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

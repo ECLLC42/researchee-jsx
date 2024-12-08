@@ -25,7 +25,7 @@ export default function Home() {
             
             <p className="text-gray-300 mb-6">
               This education tool is designed for precise clinical and research inquiries. 
-              Toggle 'With Search Enabled' to switch between research and chat modes.
+              Toggle &apos;With Search Enabled&apos; to switch between research and chat modes.
             </p>
             
             <div className="space-y-2 text-sm text-gray-400 italic">
