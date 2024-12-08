@@ -15,14 +15,14 @@ export interface ChatMessage {
 }
 
 // Article Types
-export interface Article {
+export type Article = {
   title: string;
   authors: string[];
   published: string;
   abstract: string;
   url: string;
   source: string;
-}
+};
 
 // Blob Storage Types
 export interface BlobResponse {
