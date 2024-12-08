@@ -1,9 +1,15 @@
 import { NextResponse } from 'next/server';
 import { getResearchData } from '@/lib/utils/storage';
 
+interface RouteParams {
+  params: {
+    questionId: string;
+  };
+}
+
 export async function GET(
   request: Request,
-  { params }: { params: { questionId: string } }
+  { params }: RouteParams
 ) {
   try {
     const { questionId } = params;
@@ -17,7 +23,6 @@ export async function GET(
 
     const researchData = await getResearchData(questionId);
     
-    // Return only the necessary data
     return NextResponse.json({
       articles: researchData.articles,
       keywords: researchData.keywords,

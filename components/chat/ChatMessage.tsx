@@ -1,6 +1,7 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { motion, type HTMLMotionProps } from 'framer-motion';
+import type { DetailedHTMLProps, HTMLAttributes } from 'react';
 import { UserCircleIcon } from '@heroicons/react/24/solid';
 import { SparklesIcon } from '@heroicons/react/24/outline';
 import ReactMarkdown from 'react-markdown';
@@ -12,6 +13,9 @@ interface ChatMessageProps {
   articles?: Article[];
 }
 
+type DivMotionProps = HTMLMotionProps<'div'> & 
+  DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>;
+
 export default function ChatMessage({ message, articles }: ChatMessageProps) {
   const isAssistant = message.role === 'assistant';
   const isSystem = message.role === 'system';
@@ -21,8 +25,10 @@ export default function ChatMessage({ message, articles }: ChatMessageProps) {
     return null;
   }
 
+  const MotionDiv = motion.div as React.ComponentType<DivMotionProps>;
+
   return (
-    <motion.div
+    <MotionDiv
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className={`flex flex-col gap-4 p-6 ${
@@ -48,6 +54,6 @@ export default function ChatMessage({ message, articles }: ChatMessageProps) {
           <ReactMarkdown>{message.content}</ReactMarkdown>
         </div>
       </div>
-    </motion.div>
+    </MotionDiv>
   );
 } 
