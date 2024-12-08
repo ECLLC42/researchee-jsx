@@ -1,18 +1,13 @@
+import { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { getResearchData } from '@/lib/utils/storage';
 
-interface RouteParams {
-  params: {
-    questionId: string;
-  };
-}
-
 export async function GET(
-  request: Request,
-  { params }: RouteParams
+  request: NextRequest,
+  context: { params: { questionId: string } }
 ) {
   try {
-    const { questionId } = params;
+    const { questionId } = context.params;
     
     if (!questionId) {
       return NextResponse.json(
