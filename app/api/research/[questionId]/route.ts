@@ -1,12 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getResearchData } from '@/lib/utils/storage';
 
+type Props = {
+  params: {
+    questionId: string;
+  };
+};
+
 export async function GET(
   request: NextRequest,
-  context: { params: { questionId: string } }
+  { params }: Props
 ) {
   try {
-    const { questionId } = context.params;
+    const { questionId } = params;
     const researchData = await getResearchData(questionId);
     
     return NextResponse.json({
