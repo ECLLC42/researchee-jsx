@@ -3,9 +3,10 @@
 import { useChat } from '@/lib/hooks/useChat';
 import { useResearch } from '@/lib/hooks/useResearch';
 import ChatMessage from './ChatMessage';
+import ChatInput from './ChatInput';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import Link from 'next/link';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function ChatInterface() {
   const {
@@ -36,13 +37,30 @@ export default function ChatInterface() {
     });
   }, [articles, questionId, error, isLoading, isFetchingArticles, messages.length, hasArticles]);
 
+  const [errorState, setError] = useState('');
+
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
-      await optimizeAndSearch(input, 'Researcher');
-      handleSubmit(e);
+      // First optimize and search
+      const result = await optimizeAndSearch(input, 'Researcher');
+      
+      // Only proceed with chat submission if research was successful
+      if (result?.questionId) {
+        // Pass to chat API as extra data without FormData
+        handleSubmit(e, {
+          data: {
+            occupation: 'Researcher',
+            responseLength: 'standard'
+          }
+        });
+      } else {
+        console.error('Research optimization failed - no questionId returned');
+        setError('Failed to process research query');
+      }
     } catch (error) {
       console.error('Error processing message:', error);
+      setError('An error occurred while processing your request');
     }
   };
 
@@ -73,9 +91,9 @@ export default function ChatInterface() {
                   </div>
                 )}
                 
-                {error && (
+                {errorState && (
                   <div className="text-red-500 text-center p-2 bg-red-950/50 rounded-md">
-                    {error}
+                    {errorState}
                   </div>
                 )}
                 
@@ -102,17 +120,12 @@ export default function ChatInterface() {
             <LoadingSpinner />
           </div>
         )}
-        <form onSubmit={handleFormSubmit} className="p-4 border-t border-gray-800">
-          <input
-            value={input}
-            onChange={handleInputChange}
-            placeholder="Type a message..."
-            disabled={isLoading || isFetchingArticles}
-            className="w-full p-4 text-gray-200 bg-gray-900 rounded-lg border border-gray-800 
-                     focus:border-blue-500 focus:ring-1 focus:ring-blue-500 
-                     disabled:opacity-50 disabled:cursor-not-allowed"
-          />
-        </form>
+        <ChatInput
+          onSend={handleFormSubmit}
+          input={input}
+          handleInputChange={handleInputChange}
+          disabled={isLoading || isFetchingArticles}
+        />
       </div>
     </div>
   );

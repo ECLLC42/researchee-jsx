@@ -4,10 +4,11 @@ import { nanoid } from 'nanoid';
 import { searchPubMed } from '@/lib/utils/pubmed';
 import { extractKeywords } from '@/lib/utils/keywords';
 import { uploadResearchData } from '@/lib/utils/storage';
+import { OCCUPATION_PROMPTS, type Occupation } from '@/lib/utils/openai';
 
-const SYSTEM_PROMPT = `You are a research assistant specializing in scientific literature analysis.
+const SYSTEM_PROMPT = (occupation: Occupation) => `${OCCUPATION_PROMPTS[occupation]}
 
-Instructions:
+Additional Instructions:
 - Provide clear, focused responses
 - Use (Author, Year) format for citations in-text
 - Synthesize findings across multiple studies when possible
@@ -23,7 +24,7 @@ Required Response Format:
 
 export async function POST(req: Request) {
   try {
-    const { messages } = await req.json();
+    const { messages, occupation = 'Researcher', responseLength = 'standard' } = await req.json();
     const userMessage = messages[messages.length - 1].content;
     const questionId = nanoid();
 
@@ -47,14 +48,20 @@ export async function POST(req: Request) {
     const stream = await streamText({
       model: openai('gpt-4o'),
       messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
+        { 
+          role: 'system', 
+          content: SYSTEM_PROMPT(occupation as Occupation)
+        },
         ...messages,
         {
           role: 'system',
           content: `Available articles for reference (cite those you use):
-${articles.map(a => `- ${a.authors[0]} et al. (${a.published}) - "${a.title}"`).join('\n')}`
+${articles.map(a => `- ${a.authors[0]} et al. (${a.published}) - "${a.title}"`).join('\n')}
+
+Response Length: ${responseLength === 'extended' ? 'Provide a detailed, comprehensive response (1000-2000 words)' : 'Provide a focused, concise response (500-1000 words)'}`
         }
-      ]
+      ],
+      maxTokens: responseLength === 'extended' ? 3800 : 1800
     });
 
     const response = stream.toDataStreamResponse();

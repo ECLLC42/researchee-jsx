@@ -34,7 +34,7 @@ export async function searchPubMed(keywords: string[]): Promise<PubMedArticle[]>
     const esearchData = parser.parse(esearchXml);
     
     const idList = esearchData?.eSearchResult?.IdList?.Id || [];
-    if (!Array.isArray(idList)) return [];
+    if (!Array.isArray(idList) || idList.length === 0) return [];
 
     // EFetch with XML
     const efetchUrl = `${NCBI_BASE_URL}efetch.fcgi?db=pubmed&id=${idList.join(',')}&retmode=xml`;
@@ -42,9 +42,13 @@ export async function searchPubMed(keywords: string[]): Promise<PubMedArticle[]>
     const efetchXml = await efetchResp.text();
     
     const xmlData = parser.parse(efetchXml);
-    const articles = xmlData.PubmedArticleSet.PubmedArticle;
+    const articles = xmlData?.PubmedArticleSet?.PubmedArticle || [];
+    
+    // Ensure articles is always an array
+    const articlesArray = Array.isArray(articles) ? articles : [articles];
+    if (!articlesArray.length) return [];
 
-    return articles.map((article: any) => {
+    return articlesArray.map((article: any) => {
       const medlineCitation = article.MedlineCitation;
       const articleData = medlineCitation.Article;
       

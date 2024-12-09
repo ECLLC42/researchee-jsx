@@ -148,21 +148,15 @@ export async function optimizeQuestion(question: string, occupation: Occupation 
     console.log('Optimizing question:', { question, occupation });
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4",
       messages: [
         {
           "role": "system",
-          "content": [{
-            "type": "text",
-            "text": OPTIMIZATION_PROMPTS[occupation]
-          }]
+          "content": OPTIMIZATION_PROMPTS[occupation]
         },
         {
           "role": "user",
-          "content": [{
-            "type": "text",
-            "text": `Transform this into an optimal ${occupation}-focused query: ${question}`
-          }]
+          "content": `Transform this into an optimal ${occupation}-focused query: ${question}`
         }
       ],
       temperature: 0.2
