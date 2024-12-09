@@ -19,9 +19,9 @@ export default function Home() {
           </p>
           <p className="text-gray-400 text-sm italic">
             Examples: <br />
-            <span className="text-blue-400">"Latest breakthroughs in treatment-resistant depression?"</span><br />
-            <span className="text-purple-400">"How do emerging biomarkers influence cancer immunotherapy?"</span><br />
-            <span className="text-pink-400">"What paradigm shifts are occurring in neuroplasticity research?"</span>
+            <span className="text-blue-400">&quot;Latest breakthroughs in treatment-resistant depression?&quot;</span><br />
+            <span className="text-purple-400">&quot;How do emerging biomarkers influence cancer immunotherapy?&quot;</span><br />
+            <span className="text-pink-400">&quot;What paradigm shifts are occurring in neuroplasticity research?&quot;</span>
           </p>
         </div>
       </div>
