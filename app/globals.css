@@ -1,3 +1,16 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Check if any prose classes are overriding spacing */
+.prose {
+  /* ... */
+}
+
+.prose p {
+  /* ... */
+}
+
+.prose h2 {
+  /* ... */
+}

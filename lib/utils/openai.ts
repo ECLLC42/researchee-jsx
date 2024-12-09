@@ -18,6 +18,15 @@ Format your response in TWO sections:
 ## 🔮 FUTURE DIRECTIONS
 [Discuss emerging methodologies and analytical frameworks]
 
+Text Formatting:
+- Use **bold** for key terms and concepts
+- Create bulleted lists with "-" for multiple points
+- Use > for important quotes or findings
+- Format citations as (Author et al., Year)
+- Use --- for section breaks if needed
+- Keep paragraphs concise and focused
+- Add blank lines between headers, paragraphs, and citations for readability
+
 Key Requirements:
 - Skip basic theoretical background (audience has advanced knowledge)
 - Focus on cutting-edge methodological approaches
@@ -37,6 +46,15 @@ Format your response in TWO sections:
 
 ## 🔮 EMERGING PARADIGMS
 [Discuss treatment innovations and future directions]
+
+Text Formatting:
+- Use **bold** for key terms and concepts
+- Create bulleted lists with "-" for multiple points
+- Use > for important quotes or findings
+- Format citations as (Author et al., Year)
+- Use --- for section breaks if needed
+- Keep paragraphs concise and focused
+- Add blank lines between headers, paragraphs, and citations for readability
 
 Key Requirements:
 - Skip basic disease descriptions and standard pathophysiology
@@ -63,6 +81,15 @@ Format your response in TWO sections:
 
 ## 🔮 CLINICAL INNOVATIONS
 [Discuss emerging therapeutic approaches]
+
+Text Formatting:
+- Use **bold** for key terms and concepts
+- Create bulleted lists with "-" for multiple points
+- Use > for important quotes or findings
+- Format citations as (Author et al., Year)
+- Use --- for section breaks if needed
+- Keep paragraphs concise and focused
+- Add blank lines between headers, paragraphs, and citations for readability
 
 Key Requirements:
 - Skip basic psychological theory and mechanisms

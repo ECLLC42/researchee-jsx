@@ -7,6 +7,7 @@ import { SparklesIcon } from '@heroicons/react/24/outline';
 import ReactMarkdown from 'react-markdown';
 import type { Message } from 'ai/react';
 import type { Article } from '@/lib/types';
+import remarkGfm from 'remark-gfm';
 
 interface ChatMessageProps {
   message: Message;
@@ -26,6 +27,24 @@ export default function ChatMessage({ message, articles }: ChatMessageProps) {
   }
 
   const MotionDiv = motion.div as React.ComponentType<DivMotionProps>;
+
+  // Check how the message content is rendered
+  const MessageContent = ({ content }: { content: string }) => {
+    return (
+      <ReactMarkdown
+        className="prose prose-invert max-w-none whitespace-pre-wrap"
+        remarkPlugins={[remarkGfm]}
+        components={{
+          p: ({ children }) => <p className="mb-4 whitespace-pre-wrap">{children}</p>,
+          h2: ({ children }) => <h2 className="mt-8 mb-4">{children}</h2>,
+          blockquote: ({ children }) => <blockquote className="my-4">{children}</blockquote>,
+          ul: ({ children }) => <ul className="my-4">{children}</ul>
+        }}
+      >
+        {content}
+      </ReactMarkdown>
+    );
+  };
 
   return (
     <MotionDiv
@@ -51,7 +70,7 @@ export default function ChatMessage({ message, articles }: ChatMessageProps) {
         </div>
 
         <div className="flex-1 prose prose-invert max-w-none prose-white">
-          <ReactMarkdown>{message.content}</ReactMarkdown>
+          <MessageContent content={message.content} />
         </div>
       </div>
     </MotionDiv>

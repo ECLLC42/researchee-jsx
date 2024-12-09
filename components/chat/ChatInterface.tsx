@@ -18,7 +18,8 @@ export default function ChatInterface() {
     articles,
     questionId,
     error,
-    isFetchingArticles
+    isFetchingArticles,
+    setInput
   } = useChat();
 
   const { optimizeAndSearch } = useResearch();
@@ -42,12 +43,13 @@ export default function ChatInterface() {
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
-      // First optimize and search
+      // Clear input right away
+      setInput('');
+      
+      // Proceed with optimization and search
       const result = await optimizeAndSearch(input, 'Researcher');
       
-      // Only proceed with chat submission if research was successful
       if (result?.questionId) {
-        // Pass to chat API as extra data without FormData
         handleSubmit(e, {
           data: {
             occupation: 'Researcher',

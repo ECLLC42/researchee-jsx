@@ -54,11 +54,24 @@ export async function POST(req: Request) {
         },
         ...messages,
         {
+          role: 'user',
+          content: `Format your response using:
+- **Bold** for key terms and concepts
+- Add TWO blank lines before each header (##)
+- Add ONE blank line between paragraphs
+- Add ONE blank line before and after bullet point lists
+- Add ONE blank line before and after quotes
+- Add ONE blank line before and after citations
+- Use bullet points with "-" for lists
+- Use > for important quotes
+- Format citations as (Author et al., Year)
+
+${userMessage}`
+        },
+        {
           role: 'system',
           content: `Available articles for reference (cite those you use):
-${articles.map(a => `- ${a.authors[0]} et al. (${a.published}) - "${a.title}"`).join('\n')}
-
-Response Length: ${responseLength === 'extended' ? 'Provide a detailed, comprehensive response (1000-2000 words)' : 'Provide a focused, concise response (500-1000 words)'}`
+${articles.map(a => `- ${a.authors[0]} et al. (${a.published}) - "${a.title}"`).join('\n')}`
         }
       ],
       maxTokens: responseLength === 'extended' ? 3800 : 1800
