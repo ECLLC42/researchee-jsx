@@ -45,7 +45,7 @@ export interface ResearchData {
 
 // User Types
 export type Occupation = "Researcher" | "PhD Physician" | "Psychologist";
-export type ResponseLength = "standard" | "extended";
+export type ResponseLength = 'standard' | 'extended';
 
 // API Response Types
 export interface ApiResponse<T> {

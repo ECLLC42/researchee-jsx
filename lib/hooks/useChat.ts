@@ -2,8 +2,8 @@
 
 import { useChat as useVercelChat } from 'ai/react';
 import { useState } from 'react';
-import type { Message } from 'ai';
-import type { Article } from '@/lib/types';
+import type { ExtendedMessage, Article, Occupation, ResponseLength } from '@/lib/types';
+import { nanoid } from 'nanoid';
 
 export function useChat() {
   const [articles, setArticles] = useState<Article[]>([]);
@@ -13,7 +13,10 @@ export function useChat() {
 
   const chatHelpers = useVercelChat({
     api: '/api/chat',
-    onFinish: async (message: Message) => {
+    body: {
+      responseLength: 'standard'
+    },
+    onFinish: async (message: ExtendedMessage) => {
       if (!questionId) return;
       
       setIsFetchingArticles(true);
@@ -45,8 +48,34 @@ export function useChat() {
     }
   });
 
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>, options?: { 
+    data?: {
+      occupation: Occupation;
+      responseLength: ResponseLength;
+    }
+  }) => {
+    chatHelpers.setMessages([
+      ...chatHelpers.messages,
+      {
+        id: nanoid(),
+        role: 'user',
+        content: chatHelpers.input,
+        metadata: {
+          responseLength: options?.data?.responseLength || 'standard'
+        }
+      } as ExtendedMessage
+    ]);
+    
+    chatHelpers.reload({
+      body: {
+        responseLength: options?.data?.responseLength || 'standard'
+      }
+    });
+  };
+
   return {
     ...chatHelpers,
+    handleSubmit,
     articles,
     questionId,
     error,

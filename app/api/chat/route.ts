@@ -45,6 +45,8 @@ export async function POST(req: Request) {
     });
 
     // 3. Generate response with streaming
+    const maxTokens = responseLength === 'extended' ? 3800 : 1800;
+
     const stream = await streamText({
       model: openai('gpt-4o'),
       messages: [
@@ -75,7 +77,7 @@ ${userMessage}`
 ${articles.map(a => `- ${a.authors[0]} et al. (${a.published}) - "${a.title}"`).join('\n')}`
         }
       ],
-      maxTokens: responseLength === 'extended' ? 3800 : 1800
+      maxTokens
     });
 
     const response = stream.toDataStreamResponse();

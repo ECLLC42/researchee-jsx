@@ -9,7 +9,12 @@ import { type Occupation } from '@/lib/utils/openai';
 type ResponseLength = 'standard' | 'extended';
 
 interface ChatInputProps {
-  onSend: (e: React.FormEvent<HTMLFormElement>) => void;
+  onSend: (e: React.FormEvent<HTMLFormElement>, options?: { 
+    data?: {
+      occupation: Occupation;
+      responseLength: ResponseLength;
+    }
+  }) => void;
   input: string;
   handleInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   disabled?: boolean;
@@ -30,12 +35,12 @@ export default function ChatInput({
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (input.trim() && !disabled) {
-      const form = e.currentTarget;
-      const formData = new FormData(form);
-      formData.append('withSearch', String(withSearch));
-      formData.append('occupation', occupation);
-      formData.append('maxTokens', String(responseLength === 'standard' ? 1800 : 3800));
-      onSend(e);
+      onSend(e, {
+        data: {
+          occupation,
+          responseLength
+        }
+      });
     }
   };
 

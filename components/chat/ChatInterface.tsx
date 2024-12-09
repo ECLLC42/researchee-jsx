@@ -7,6 +7,7 @@ import ChatInput from './ChatInput';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import type { Occupation, ResponseLength } from '@/lib/types';
 
 export default function ChatInterface() {
   const {
@@ -40,20 +41,23 @@ export default function ChatInterface() {
 
   const [errorState, setError] = useState('');
 
-  const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>, options?: { 
+    data?: {
+      occupation: Occupation;
+      responseLength: ResponseLength;
+    }
+  }) => {
     e.preventDefault();
     try {
-      // Clear input right away
       setInput('');
       
-      // Proceed with optimization and search
-      const result = await optimizeAndSearch(input, 'Researcher');
+      const result = await optimizeAndSearch(input, options?.data?.occupation || 'Researcher');
       
       if (result?.questionId) {
         handleSubmit(e, {
           data: {
-            occupation: 'Researcher',
-            responseLength: 'standard'
+            occupation: options?.data?.occupation || 'Researcher',
+            responseLength: options?.data?.responseLength || 'standard'
           }
         });
       } else {
