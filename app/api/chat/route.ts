@@ -65,6 +65,7 @@ export async function POST(req: Request) {
 - Use bullet points with "-" for lists
 - Use > for important quotes
 - Format citations as (Author et al., Year)
+- Form your response as a narrative, not a list of bullet points or list of sources. Provide a clear and cohesive response at an above PhD level.
 
 ${userMessage}`
         },
