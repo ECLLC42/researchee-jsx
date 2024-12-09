@@ -14,3 +14,9 @@
 .prose h2 {
   /* ... */
 }
+
+@layer base {
+  html, body {
+    height: 100%;
+  }
+}

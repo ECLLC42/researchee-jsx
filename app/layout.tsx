@@ -1,32 +1,21 @@
-import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
+import { Header } from '@/components/ui/Header';
 
 const inter = Inter({ subsets: ['latin'] });
 
-export const viewport = {
-  themeColor: '#1e40af',
-}
-
-export const metadata: Metadata = {
+export const metadata = {
   title: 'Brilliance Research Assistant',
   description: 'AI-powered research assistant for medical professionals and researchers',
-  manifest: '/manifest.json',
-  icons: {
-    icon: '/icon.png',
-  },
-}
+};
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="dark">
-      <body className={inter.className}>
-        <div className="h-screen bg-gray-950">
-          <main className="h-full overflow-auto">
+    <html lang="en" className="dark h-full">
+      <body className={`${inter.className} bg-gray-950 text-gray-200 h-full`}>
+        <div className="flex flex-col h-full">
+          <Header />
+          <main className="flex-1">
             {children}
           </main>
         </div>

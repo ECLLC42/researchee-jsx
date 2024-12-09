@@ -45,7 +45,8 @@ export function useChat() {
         setArticles([]);
         setError(null);
       }
-    }
+    },
+    id: 'research-chat'
   });
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>, options?: { 
@@ -54,23 +55,16 @@ export function useChat() {
       responseLength: ResponseLength;
     }
   }) => {
-    chatHelpers.setMessages([
-      ...chatHelpers.messages,
-      {
-        id: nanoid(),
-        role: 'user',
-        content: chatHelpers.input,
-        metadata: {
-          responseLength: options?.data?.responseLength || 'standard'
-        }
-      } as ExtendedMessage
-    ]);
+    e.preventDefault();
     
-    chatHelpers.reload({
-      body: {
+    chatHelpers.append({
+      id: nanoid(),
+      role: 'user',
+      content: chatHelpers.input,
+      metadata: {
         responseLength: options?.data?.responseLength || 'standard'
       }
-    });
+    } as ExtendedMessage);
   };
 
   return {

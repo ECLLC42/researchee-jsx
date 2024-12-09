@@ -5,53 +5,44 @@ import type { DetailedHTMLProps, HTMLAttributes } from 'react';
 import { UserCircleIcon } from '@heroicons/react/24/solid';
 import { SparklesIcon } from '@heroicons/react/24/outline';
 import ReactMarkdown from 'react-markdown';
-import type { Message } from 'ai/react';
-import type { Article } from '@/lib/types';
 import remarkGfm from 'remark-gfm';
+import type { ExtendedMessage } from '@/lib/types';
 
 interface ChatMessageProps {
-  message: Message;
-  articles?: Article[];
+  message: ExtendedMessage;
 }
 
 type DivMotionProps = HTMLMotionProps<'div'> & 
   DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>;
 
-export default function ChatMessage({ message, articles }: ChatMessageProps) {
+export default function ChatMessage({ message }: ChatMessageProps) {
   const isAssistant = message.role === 'assistant';
   const isSystem = message.role === 'system';
-  
-  // Skip rendering system messages containing QuestionID
+  const MotionDiv = motion.div as React.ComponentType<DivMotionProps>;
+
+  // Hide system messages that start with "QuestionID:"
   if (isSystem && message.content.startsWith('QuestionID:')) {
     return null;
   }
 
-  const MotionDiv = motion.div as React.ComponentType<DivMotionProps>;
-
-  // Check how the message content is rendered
-  const MessageContent = ({ content }: { content: string }) => {
-    return (
-      <ReactMarkdown
-        className="prose prose-invert max-w-none whitespace-pre-wrap"
-        remarkPlugins={[remarkGfm]}
-        components={{
-          p: ({ children }) => <p className="mb-4 whitespace-pre-wrap">{children}</p>,
-          h2: ({ children }) => <h2 className="mt-8 mb-4">{children}</h2>,
-          blockquote: ({ children }) => <blockquote className="my-4">{children}</blockquote>,
-          ul: ({ children }) => <ul className="my-4">{children}</ul>
-        }}
-      >
-        {content}
-      </ReactMarkdown>
-    );
-  };
+  const MessageContent = ({ content }: { content: string }) => (
+    <ReactMarkdown
+      className="prose prose-invert max-w-none whitespace-pre-wrap"
+      remarkPlugins={[remarkGfm]}
+      components={{
+        p: ({ children }) => <p className="mb-4 whitespace-pre-wrap">{children}</p>,
+      }}
+    >
+      {content}
+    </ReactMarkdown>
+  );
 
   return (
     <MotionDiv
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`flex flex-col gap-4 p-6 text-white ${
-        isAssistant ? 'bg-gray-900' : isSystem ? 'bg-gray-800' : 'bg-transparent'
+      className={`rounded-lg p-4 ${
+        isAssistant ? 'bg-gray-900' : isSystem ? 'bg-gray-800' : 'bg-gray-850'
       }`}
     >
       <div className="flex gap-4">
@@ -69,7 +60,7 @@ export default function ChatMessage({ message, articles }: ChatMessageProps) {
           )}
         </div>
 
-        <div className="flex-1 prose prose-invert max-w-none prose-white">
+        <div className="flex-1">
           <MessageContent content={message.content} />
         </div>
       </div>

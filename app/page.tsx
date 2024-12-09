@@ -5,42 +5,30 @@ import ChatInterface from '@/components/chat/ChatInterface';
 
 export default function Home() {
   return (
-    <main className="flex h-screen bg-gray-950">
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <div className="text-center py-8 bg-gradient-to-b from-gray-900 to-gray-950">
-          <div className="flex items-center justify-between px-8 mb-4">
-            <div className="flex items-center space-x-2">
-              <SparklesIcon className="h-8 w-8 text-blue-400" />
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                Brilliance
-              </h1>
-            </div>
+    <div className="h-full flex flex-col">
+      <div className="bg-gradient-to-b from-gray-900 to-gray-950 py-8">
+        <div className="max-w-4xl mx-auto px-4 text-center">
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <SparklesIcon className="h-8 w-8 text-blue-400" />
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+              Brilliance
+            </h1>
           </div>
-          
-          <div className="max-w-2xl mx-auto px-4">
-            <h2 className="text-xl text-purple-300 mb-4">
-              💡 This is not your standard ChatGPT. 💡
-            </h2>
-            
-            <p className="text-gray-300 mb-6">
-              This education tool is designed for precise clinical and research inquiries. 
-              Toggle &apos;With Search Enabled&apos; to switch between research and chat modes.
-            </p>
-            
-            <div className="space-y-2 text-sm text-gray-400 italic">
-              <p className="text-blue-400">&quot;What are the latest breakthrough treatments for treatment-resistant depression?&quot;</p>
-              <p className="text-purple-400">&quot;How do emerging biomarkers influence cancer immunotherapy outcomes?&quot;</p>
-              <p className="text-pink-400">&quot;What paradigm shifts are occurring in neuroplasticity research?&quot;</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Chat Interface */}
-        <div className="flex-1 overflow-hidden">
-          <ChatInterface />
+          <p className="text-gray-300 mb-4">
+            💡 Not your standard ChatGPT. This tool refines queries, integrates PubMed abstracts, and synthesizes answers at a doctoral level.
+          </p>
+          <p className="text-gray-400 text-sm italic">
+            Examples: <br />
+            <span className="text-blue-400">"Latest breakthroughs in treatment-resistant depression?"</span><br />
+            <span className="text-purple-400">"How do emerging biomarkers influence cancer immunotherapy?"</span><br />
+            <span className="text-pink-400">"What paradigm shifts are occurring in neuroplasticity research?"</span>
+          </p>
         </div>
       </div>
-    </main>
+      
+      <div className="flex-1 min-h-0">
+        <ChatInterface />
+      </div>
+    </div>
   );
 }
