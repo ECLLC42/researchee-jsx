@@ -1,0 +1,1952 @@
+=== App Files ===
+
+// File: ./app/articles/page.tsx
+'use client';
+
+import { useChat } from '@/lib/hooks/useChat';
+import { ArticleCard } from '@/components/ui/ArticleCard';
+import { SparklesIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
+import Link from 'next/link';
+import { uploadFile } from '@/lib/utils/blob';
+import { useState } from 'react';
+
+export default function ArticlesPage() {
+  const { articles } = useChat();
+  const hasArticles = articles && articles.length > 0;
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+
+  const handleSave = async () => {
+    if (!articles || articles.length === 0) return;
+    setIsSaving(true);
+    setSaveMessage(null);
+
+    try {
+      const content = JSON.stringify({ articles, timestamp: Date.now() }, null, 2);
+      const key = `research/articles_${Date.now()}.json`;
+      const { url } = await uploadFile(key, content, { access: 'public' });
+      setSaveMessage(`Articles saved successfully! Access at: ${url}`);
+    } catch (error) {
+      console.error('Error saving articles:', error);
+      setSaveMessage('Failed to save articles.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <main className="min-h-screen bg-gray-950 p-8">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-2xl font-bold text-gray-200 flex items-center gap-2">
+            <SparklesIcon className="w-6 h-6 text-blue-400" />
+            Research Articles
+          </h1>
+          <Link 
+            href="/"
+            className="flex items-center gap-2 text-gray-400 hover:text-gray-300"
+          >
+            <ArrowLeftIcon className="w-4 h-4" />
+            Back to Chat
+          </Link>
+        </div>
+
+        {/* Save Button */}
+        {hasArticles && (
+          <div className="mb-4 flex items-center justify-end">
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className={`px-4 py-2 rounded-md text-sm font-medium ${
+                isSaving 
+                  ? 'bg-gray-600 text-gray-200 cursor-not-allowed' 
+                  : 'bg-blue-600 hover:bg-blue-500 text-white'
+              }`}
+            >
+              {isSaving ? 'Saving...' : 'Save'}
+            </button>
+          </div>
+        )}
+
+        {saveMessage && (
+          <div className="mb-4 text-sm text-gray-300">
+            {saveMessage}
+          </div>
+        )}
+
+        {/* Articles Grid */}
+        {hasArticles ? (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {articles.map((article, index) => (
+              <ArticleCard
+                key={`${article.title}-${index}`}
+                {...article}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12 text-gray-400">
+            No articles available. Start a research chat to see articles here.
+          </div>
+        )}
+      </div>
+    </main>
+  );
+} \n
+// File: ./app/layout.tsx
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import './globals.css';
+import { Header } from '@/components/ui/Header';
+import { Footer } from '@/components/ui/Footer';
+
+const inter = Inter({ subsets: ['latin'] });
+
+export const viewport = {
+  themeColor: '#1e40af',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover'
+}
+
+export const metadata: Metadata = {
+  title: 'Brilliance Research Assistant',
+  description: 'AI-powered research assistant for medical professionals and researchers',
+  manifest: '/manifest.json',
+  icons: {
+    icon: '/icon.png',
+  },
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en" className="dark h-full">
+      <body className={`${inter.className} bg-gray-950 text-gray-200 h-full`}>
+        <div className="flex flex-col min-h-full">
+          <Header />
+          <main className="flex-1">
+            {children}
+          </main>
+          <Footer />
+        </div>
+      </body>
+    </html>
+  );
+}\n
+// File: ./app/api/research/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { uploadResearchData } from '@/lib/utils/storage';
+
+export async function POST(request: NextRequest) {
+  try {
+    const { questionId, data } = await request.json();
+
+    if (!questionId || !data) {
+      return NextResponse.json(
+        { error: 'Question ID and data are required' },
+        { status: 400 }
+      );
+    }
+
+    await uploadResearchData(questionId, data);
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error storing research data:', error);
+    return NextResponse.json(
+      { error: 'Failed to store research data' },
+      { status: 500 }
+    );
+  }
+} \n
+// File: ./app/api/research/[questionId]/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { getResearchData } from '@/lib/utils/storage';
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ questionId: string }> }
+) {
+  try {
+    const { questionId } = await params;
+    
+    // Add retry logic with timeout
+    let retries = 3;
+    let researchData = null;
+    
+    while (retries > 0) {
+      try {
+        researchData = await getResearchData(questionId);
+        if (researchData) break;
+      } catch (error) {
+        console.log(`Attempt ${4 - retries} failed, retrying...`);
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second between retries
+        retries--;
+      }
+    }
+
+    if (!researchData) {
+      return NextResponse.json(
+        { error: 'Research data not found after multiple attempts' },
+        { status: 404 }
+      );
+    }
+    
+    return NextResponse.json({
+      articles: researchData.articles,
+      keywords: researchData.keywords,
+      timestamp: researchData.timestamp,
+      question: researchData.question
+    });
+  } catch (error) {
+    console.error('Error in research route:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch research data' },
+      { status: 500 }
+    );
+  }
+} \n
+// File: ./app/api/relevance/route.ts
+import { NextResponse } from 'next/server';
+import { checkArticleRelevance } from '@/lib/utils/relevance';
+import type { PubMedArticle } from '@/lib/utils/pubmed';
+
+export async function POST(request: Request) {
+  try {
+    const { query, articles } = await request.json();
+
+    if (!query || !articles?.length) {
+      return NextResponse.json(
+        { error: 'Query and articles are required' },
+        { status: 400 }
+      );
+    }
+
+    const relevantArticles = checkArticleRelevance(
+      query,
+      articles as PubMedArticle[],
+      10
+    );
+
+    if (!relevantArticles.length) {
+      return NextResponse.json(
+        { error: 'No relevant articles found' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ articles: relevantArticles });
+  } catch (error) {
+    console.error('Error checking article relevance:', error);
+    return NextResponse.json(
+      { error: 'Failed to check article relevance' },
+      { status: 500 }
+    );
+  }
+} \n
+// File: ./app/api/optimize/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { optimizeQuestion } from '@/lib/utils/openai';
+import type { OPTIMIZATION_PROMPTS } from '@/lib/utils/openai';
+
+export async function POST(request: NextRequest) {
+  try {
+    const { question, occupation } = await request.json();
+
+    if (!question || !occupation) {
+      return NextResponse.json(
+        { error: 'Question and occupation are required' }, 
+        { status: 400 }
+      );
+    }
+
+    const optimizedQuestion = await optimizeQuestion(
+      question, 
+      occupation as keyof typeof OPTIMIZATION_PROMPTS
+    );
+
+    return NextResponse.json({ optimizedQuestion });
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Failed to optimize question' }, 
+      { status: 500 }
+    );
+  }
+} \n
+// File: ./app/api/chat/route.ts
+import { openai } from '@ai-sdk/openai';
+import { streamText } from 'ai';
+import { nanoid } from 'nanoid';
+import { searchPubMed } from '@/lib/utils/pubmed';
+import { extractKeywords } from '@/lib/utils/keywords';
+import { uploadResearchData } from '@/lib/utils/storage';
+import { OCCUPATION_PROMPTS, type Occupation } from '@/lib/utils/openai';
+
+const SYSTEM_PROMPT = (occupation: Occupation) => `${OCCUPATION_PROMPTS[occupation]}
+
+Additional Instructions:
+- Provide clear, focused responses
+- Use (Author, Year) format for citations in-text
+- Synthesize findings across multiple studies when possible
+- Focus on evidence-based insights
+- Format all text in white color
+
+Required Response Format:
+1. First provide your main response in white text
+2. End EVERY response with a "Sources Used:" section in white text that lists ONLY the articles you specifically cited
+3. Format each source as: "Author et al. (Year) - Title"
+4. Only include sources you actually referenced in your response
+5. Ensure all text remains white for readability`;
+
+export async function POST(req: Request) {
+  try {
+    const { messages, occupation = 'Researcher', responseLength = 'standard' } = await req.json();
+    const userMessage = messages[messages.length - 1].content;
+    const questionId = nanoid();
+
+    // 1. Extract keywords and search
+    const keywords = await extractKeywords(userMessage);
+    const articles = await searchPubMed(keywords);
+
+    // 2. Store research data
+    await uploadResearchData(questionId, {
+      question: userMessage,
+      optimizedQuestion: userMessage,
+      keywords,
+      articles,
+      timestamp: new Date().toISOString(),
+      occupation: 'Researcher',
+      answer: '',
+      citations: []
+    });
+
+    // 3. Generate response with streaming
+    const maxTokens = responseLength === 'extended' ? 3800 : 1800;
+
+    const stream = await streamText({
+      model: openai('gpt-4o'),
+      messages: [
+        { 
+          role: 'system', 
+          content: SYSTEM_PROMPT(occupation as Occupation)
+        },
+        ...messages,
+        {
+          role: 'user',
+          content: `Format your response using:
+- **Bold** for key terms and concepts
+- Add TWO blank lines before each header (##)
+- Add ONE blank line between paragraphs
+- Add ONE blank line before and after bullet point lists
+- Add ONE blank line before and after quotes
+- Add ONE blank line before and after citations
+- Use bullet points with "-" for lists
+- Use > for important quotes
+- Format citations as (Author et al., Year)
+- Form your response as a narrative, not a list of bullet points or list of sources. Provide a clear and cohesive response at an above PhD level.
+
+${userMessage}`
+        },
+        {
+          role: 'system',
+          content: `Available articles for reference (cite those you use):
+${articles.map(a => `- ${a.authors[0]} et al. (${a.published}) - "${a.title}"`).join('\n')}`
+        }
+      ],
+      maxTokens
+    });
+
+    const response = stream.toDataStreamResponse();
+    response.headers.set('X-Question-ID', questionId);
+    return response;
+
+  } catch (error) {
+    console.error('Chat API error:', error);
+    return new Response('Internal Server Error', { status: 500 });
+  }
+}
+
+// export const runtime = 'edge';
+\n
+// File: ./app/api/pubmed/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { searchPubMed } from '@/lib/utils/pubmed';
+
+export async function POST(request: NextRequest) {
+  try {
+    const { keywords } = await request.json();
+
+    if (!keywords?.length) {
+      return NextResponse.json(
+        { error: 'Keywords are required' },
+        { status: 400 }
+      );
+    }
+
+    const articles = await searchPubMed(keywords);
+    return NextResponse.json({ articles });
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Failed to search PubMed' },
+      { status: 500 }
+    );
+  }
+}
+\n
+// File: ./app/api/keywords/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { extractKeywords } from '@/lib/utils/keywords';
+
+export async function POST(request: NextRequest) {
+  try {
+    const { optimizedQuestion } = await request.json();
+
+    if (!optimizedQuestion) {
+      return NextResponse.json(
+        { error: 'Optimized question is required' }, 
+        { status: 400 }
+      );
+    }
+
+    const keywords = await extractKeywords(optimizedQuestion);
+    return NextResponse.json({ keywords });
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Failed to extract keywords' }, 
+      { status: 500 }
+    );
+  }
+} \n
+// File: ./app/page.tsx
+'use client';
+
+import { SparklesIcon } from '@heroicons/react/24/outline';
+import ChatInterface from '@/components/chat/ChatInterface';
+
+export default function Home() {
+  return (
+    <div className="h-full flex flex-col">
+      <div className="bg-gradient-to-b from-gray-900 to-gray-950 py-8">
+        <div className="max-w-4xl mx-auto px-4 text-center">
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <SparklesIcon className="h-8 w-8 text-blue-400" />
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+              Brilliance
+            </h1>
+          </div>
+          <p className="text-gray-300 mb-4">
+            💡 Not your standard ChatGPT. This tool refines queries, integrates PubMed abstracts, and synthesizes answers at a doctoral level.
+          </p>
+          <p className="text-gray-400 text-sm italic">
+            Examples: <br />
+            <span className="text-blue-400">&quot;Latest breakthroughs in treatment-resistant depression?&quot;</span><br />
+            <span className="text-purple-400">&quot;How do emerging biomarkers influence cancer immunotherapy?&quot;</span><br />
+            <span className="text-pink-400">&quot;What paradigm shifts are occurring in neuroplasticity research?&quot;</span>
+          </p>
+        </div>
+      </div>
+      
+      <div className="flex-1 min-h-0">
+        <ChatInterface />
+      </div>
+    </div>
+  );
+}\n
+// File: ./app/globals.css
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* iOS-specific styles */
+@supports (-webkit-touch-callout: none) {
+  .min-h-screen {
+    min-height: -webkit-fill-available;
+  }
+  
+  .h-screen {
+    height: -webkit-fill-available;
+  }
+}
+
+/* Prevent text size adjustment on iOS */
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Improve touch targets */
+button, 
+select, 
+textarea {
+  min-height: 44px; /* iOS minimum touch target size */
+}
+
+/* Prevent iOS double-tap zoom */
+* {
+  touch-action: manipulation;
+}
+
+/* Disable iOS tap highlight */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Smooth scrolling for iOS */
+.overflow-auto, 
+.overflow-y-auto {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Fix iOS input styles */
+input, 
+textarea {
+  -webkit-appearance: none;
+  border-radius: 0;
+}
+
+/* Check if any prose classes are overriding spacing */
+.prose {
+  /* ... */
+}
+
+.prose p {
+  /* ... */
+}
+
+.prose h2 {
+  /* ... */
+}
+
+@layer base {
+  html, body {
+    height: 100%;
+  }
+}\n
+
+=== Component Files ===
+
+// File: ./components/ui/ArticleCard.tsx
+'use client';
+
+import { useState } from 'react';
+import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
+import type { Article } from '@/lib/types';
+
+export type ArticleCardProps = Article;
+
+export function ArticleCard({ 
+  title, 
+  authors, 
+  published, 
+  abstract, 
+  url,
+  source  // Add source prop
+}: ArticleCardProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  
+  const safeAbstract = typeof abstract === 'string' && abstract.trim() !== '' 
+    ? abstract 
+    : 'No abstract available.';
+  const sentences = safeAbstract.split('.').map(s => s.trim()).filter(Boolean);
+  const previewAbstract = sentences.slice(0, 3).join('. ') + (sentences.length > 3 ? '.' : '');
+  
+  return (
+    <div className="bg-gray-800 rounded-lg p-4 hover:bg-gray-750 transition-all">
+      <div className="flex justify-between items-start mb-2">
+        <a 
+          href={url} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="flex-1"
+        >
+          <h3 className="text-lg font-medium text-blue-400 hover:text-blue-300">
+            {title}
+          </h3>
+        </a>
+        <span className="text-xs text-gray-400 ml-2">
+          {source}
+        </span>
+      </div>
+      
+      <div className="text-sm text-gray-400 mb-3">
+        {authors.join(', ')} ({published})
+      </div>
+      
+      <div className="text-gray-300">
+        {isExpanded ? safeAbstract : previewAbstract}
+      </div>
+      
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="mt-2 flex items-center text-sm text-gray-400 hover:text-gray-300"
+      >
+        {isExpanded ? (
+          <>
+            <ChevronUpIcon className="w-4 h-4 mr-1" />
+            Show Less
+          </>
+        ) : (
+          <>
+            <ChevronDownIcon className="w-4 h-4 mr-1" />
+            Read More
+          </>
+        )}
+      </button>
+    </div>
+  );
+} \n
+// File: ./components/ui/Footer.tsx
+export function Footer() {
+  return (
+    <footer className="bg-gray-950 border-t border-gray-800 py-4 px-4 text-center text-sm">
+      <div className="max-w-4xl mx-auto space-y-2">
+        <p className="text-gray-400">
+          © 2024 EC. All rights reserved.
+        </p>
+        <p className="text-gray-500 text-xs">
+          Disclaimer: This is an educational research tool only. The information provided should not be used for medical diagnosis, 
+          treatment, or health advice. Always consult qualified healthcare professionals for medical decisions.
+        </p>
+      </div>
+    </footer>
+  );
+} \n
+// File: ./components/ui/LoadingSpinner.tsx
+interface LoadingSpinnerProps {
+  className?: string;
+}
+
+export function LoadingSpinner({ className = '' }: LoadingSpinnerProps) {
+  return (
+    <svg 
+      className={`animate-spin ${className}`} 
+      xmlns="http://www.w3.org/2000/svg" 
+      fill="none" 
+      viewBox="0 0 24 24"
+    >
+      <circle 
+        className="opacity-25" 
+        cx="12" 
+        cy="12" 
+        r="10" 
+        stroke="currentColor" 
+        strokeWidth="4"
+      />
+      <path 
+        className="opacity-75" 
+        fill="currentColor" 
+        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+      />
+    </svg>
+  );
+} \n
+// File: ./components/ui/Header.tsx
+'use client';
+
+import Link from 'next/link';
+import { SparklesIcon } from '@heroicons/react/24/outline';
+
+export function Header() {
+  return (
+    <header className="sticky top-0 z-50 bg-gray-950 border-b border-gray-800">
+      <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-2">
+        <SparklesIcon className="h-6 w-6 text-blue-400" />
+        <Link href="/" className="text-gray-200 text-xl font-bold">
+          Brilliance
+        </Link>
+        <span className="text-gray-400 text-sm ml-4">
+          Your Research & Clinical Insights Companion
+        </span>
+      </div>
+    </header>
+  );
+} \n
+// File: ./components/chat/ChatInterface.tsx
+'use client';
+
+import { useChat } from '@/lib/hooks/useChat';
+import ChatMessage from '@/components/chat/ChatMessage';
+import ChatInput from '@/components/chat/ChatInput';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import Link from 'next/link';
+
+export default function ChatInterface() {
+  const {
+    messages,
+    input,
+    handleInputChange,
+    handleSubmit,
+    isLoading,
+    articles,
+    error,
+    isFetchingArticles,
+  } = useChat();
+
+  const hasArticles = Array.isArray(articles) && articles.length > 0;
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex-1 overflow-y-auto min-h-0">
+        <div className="h-full px-4 py-4">
+          <div className="max-w-4xl mx-auto space-y-4">
+            {messages.length === 0 ? (
+              <div className="text-gray-400 text-center py-8">
+                Start a conversation...
+              </div>
+            ) : (
+              <>
+                {messages.map((message) => (
+                  <ChatMessage
+                    key={message.id}
+                    message={message}
+                  />
+                ))}
+
+                {isLoading && (
+                  <div className="flex items-center justify-center gap-3 text-gray-400 py-4">
+                    <LoadingSpinner className="w-5 h-5" />
+                    <span>Generating response...</span>
+                  </div>
+                )}
+
+                <div className="mt-4 space-y-2 text-center">
+                  {isFetchingArticles && (
+                    <div className="text-gray-400 flex items-center justify-center gap-2">
+                      <LoadingSpinner className="w-4 h-4" />
+                      Searching research articles...
+                    </div>
+                  )}
+
+                  {error && (
+                    <div className="text-red-500 p-2 bg-red-950/50 rounded-md">
+                      {error}
+                    </div>
+                  )}
+
+                  {hasArticles && (
+                    <Link 
+                      href="/articles" 
+                      className="inline-flex items-center gap-2 text-blue-400 hover:text-blue-300 transition-colors"
+                    >
+                      <span className="text-sm">View {articles.length} Research Articles</span>
+                      <span className="text-xs">(PubMed)</span>
+                    </Link>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-shrink-0">
+        <ChatInput
+          onSend={handleSubmit}
+          input={input}
+          handleInputChange={handleInputChange}
+          disabled={isLoading || isFetchingArticles}
+        />
+      </div>
+    </div>
+  );
+}\n
+// File: ./components/chat/ChatMessage.tsx
+'use client';
+
+import { motion, type HTMLMotionProps } from 'framer-motion';
+import type { DetailedHTMLProps, HTMLAttributes } from 'react';
+import { UserCircleIcon } from '@heroicons/react/24/solid';
+import { SparklesIcon } from '@heroicons/react/24/outline';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import type { ExtendedMessage } from '@/lib/types';
+
+interface ChatMessageProps {
+  message: ExtendedMessage;
+}
+
+type DivMotionProps = HTMLMotionProps<'div'> & 
+  DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>;
+
+export default function ChatMessage({ message }: ChatMessageProps) {
+  const isAssistant = message.role === 'assistant';
+  const isSystem = message.role === 'system';
+  const MotionDiv = motion.div as React.ComponentType<DivMotionProps>;
+
+  // Hide system messages that start with "QuestionID:"
+  if (isSystem && message.content.startsWith('QuestionID:')) {
+    return null;
+  }
+
+  const MessageContent = ({ content }: { content: string }) => (
+    <ReactMarkdown
+      className="prose prose-invert max-w-none whitespace-pre-wrap"
+      remarkPlugins={[remarkGfm]}
+      components={{
+        p: ({ children }) => <p className="mb-4 whitespace-pre-wrap">{children}</p>,
+      }}
+    >
+      {content}
+    </ReactMarkdown>
+  );
+
+  return (
+    <MotionDiv
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={`rounded-lg p-4 ${
+        isAssistant ? 'bg-gray-900' : isSystem ? 'bg-gray-800' : 'bg-gray-850'
+      }`}
+    >
+      <div className="flex gap-4">
+        <div className="flex-shrink-0">
+          {isAssistant ? (
+            <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
+              <SparklesIcon className="w-5 h-5 text-white" />
+            </div>
+          ) : isSystem ? (
+            <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center">
+              <span className="text-white text-xs">SYS</span>
+            </div>
+          ) : (
+            <UserCircleIcon className="w-8 h-8 text-gray-400" />
+          )}
+        </div>
+
+        <div className="flex-1">
+          <MessageContent content={message.content} />
+        </div>
+      </div>
+    </MotionDiv>
+  );
+} \n
+// File: ./components/chat/ChatInput.tsx
+'use client';
+
+import { PaperAirplaneIcon, MagnifyingGlassIcon } from '@heroicons/react/24/solid';
+import { useState, useRef, useEffect } from 'react';
+import type { Occupation, ResponseLength } from '@/lib/types';
+
+interface ChatInputProps {
+  onSend: (e: React.FormEvent<HTMLFormElement>, options?: { 
+    data?: {
+      occupation: Occupation;
+      responseLength: ResponseLength;
+    }
+  }) => void;
+  input: string;
+  handleInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+  disabled?: boolean;
+}
+
+export default function ChatInput({ 
+  onSend, 
+  input, 
+  handleInputChange, 
+  disabled 
+}: ChatInputProps) {
+  const [occupation, setOccupation] = useState<Occupation>('Researcher');
+  const [responseLength, setResponseLength] = useState<ResponseLength>('standard');
+  const [withSearch, setWithSearch] = useState(true);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (input.trim() && !disabled) {
+      onSend(e, {
+        data: {
+          occupation,
+          responseLength
+        }
+      });
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      const form = e.currentTarget.form;
+      if (form) form.requestSubmit();
+    }
+  };
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  }, [input]);
+
+  useEffect(() => {
+    // Fix iOS keyboard issues
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        window.scrollTo(0, 0);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
+  return (
+    <div className="border-t border-gray-800 bg-gray-950/80 backdrop-blur-sm p-4 pb-[env(safe-area-inset-bottom)]">
+      <form onSubmit={handleSubmit} className="max-w-4xl mx-auto space-y-8">
+        <div className="flex flex-col sm:flex-row justify-center items-center gap-4 bg-gray-900/50 p-4 rounded-lg">
+          <div className="w-full sm:w-auto text-center">
+            <select
+              value={occupation}
+              onChange={(e) => setOccupation(e.target.value as Occupation)}
+              className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-gray-200 
+                appearance-none w-full sm:w-auto mb-2 sm:mb-0 hover:border-gray-600 focus:border-blue-500/50
+                transition-colors text-center"
+            >
+              <option value="Researcher">👨‍🔬 Researcher</option>
+              <option value="PhD Physician">👨‍⚕️ Physician</option>
+              <option value="Psychologist">🧠 Psychologist</option>
+            </select>
+          </div>
+
+          <div className="w-full sm:w-auto text-center">
+            <select
+              value={responseLength}
+              onChange={(e) => setResponseLength(e.target.value as ResponseLength)}
+              className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-gray-200 
+                appearance-none w-full sm:w-auto mb-2 sm:mb-0 hover:border-gray-600 focus:border-blue-500/50
+                transition-colors text-center"
+            >
+              <option value="standard">📝 Standard</option>
+              <option value="extended">�� Extended</option>
+            </select>
+          </div>
+
+          <div className="w-full sm:w-auto text-center">
+            <button
+              type="button"
+              onClick={() => setWithSearch(!withSearch)}
+              className={`flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg border w-full sm:w-auto
+                ${withSearch 
+                  ? 'bg-blue-500/20 border-blue-400/50 text-blue-300 hover:bg-blue-500/30'
+                  : 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700'
+                } transition-all duration-200`}
+            >
+              {withSearch ? '🔍' : '🚫'} 
+              <span className="hidden sm:inline">{withSearch ? 'Search Enabled' : 'Search Disabled'}</span>
+              <span className="sm:hidden">{withSearch ? 'Search On' : 'Search Off'}</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="relative bg-gray-900/70 rounded-xl shadow-lg border-2 border-purple-600/40 hover:border-purple-500/60 focus-within:border-purple-400/80 transition-all duration-200">
+          <textarea
+            ref={textareaRef}
+            name="message"
+            value={input}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            placeholder="Ask a research question..."
+            className="w-full max-h-32 p-5 pr-14 bg-transparent border-0 resize-none 
+              focus:ring-0 focus:outline-none text-gray-200 placeholder-gray-400
+              min-h-[44px] rounded-none text-lg"
+            rows={1}
+            disabled={disabled}
+            style={{ minHeight: '48px' }}
+          />
+          <button
+            type="submit"
+            disabled={disabled || !input.trim()}
+            className={`absolute right-3 bottom-3 p-2.5 rounded-lg min-h-[44px] min-w-[44px]
+              ${disabled || !input.trim()
+                ? 'bg-gray-800/80 text-gray-500'
+                : 'bg-purple-600 text-white hover:bg-purple-500 active:scale-95'
+              } transition-all duration-200 shadow-lg`}
+          >
+            <PaperAirplaneIcon className="w-5 h-5" />
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+} \n
+
+=== Lib Files ===
+
+// File: ./lib/types/index.ts
+import type { Message } from 'ai';
+
+// Chat Types
+export interface ChatMessage {
+  id?: string;
+  role: "user" | "assistant" | "system";
+  content: string;
+  metadata?: {
+    articles?: Article[];
+    originalQuestion?: string;
+    keywords?: string[];
+    occupation?: Occupation;
+    questionId?: string;
+  };
+}
+
+// Article Types
+export type Article = {
+  title: string;
+  authors: string[];
+  published: string;
+  abstract: string;
+  url: string;
+  source: string;
+};
+
+// Blob Storage Types
+export interface BlobResponse {
+  url: string;
+  pathname: string;
+}
+
+// Research Types
+export interface ResearchData {
+  id: string;
+  question: string;
+  optimizedQuestion: string;
+  keywords: string[];
+  articles: Article[];
+  timestamp: string;
+  occupation: Occupation;
+  answer: string;
+  citations: Article[];
+}
+
+// User Types
+export type Occupation = "Researcher" | "PhD Physician" | "Psychologist";
+export type ResponseLength = 'standard' | 'extended';
+
+// API Response Types
+export interface ApiResponse<T> {
+  data?: T;
+  error?: string;
+  status: number;
+}
+
+// Search Types
+export interface SearchResult {
+  articles: Article[];
+  keywords: string[];
+  optimizedQuestion: string;
+}
+
+export interface ExtendedMessage extends Message {
+  metadata?: {
+    articles?: Article[];
+    originalQuestion?: string;
+    keywords?: string[];
+    occupation?: string;
+    questionId?: string;
+  };
+} \n
+// File: ./lib/context/ResearchContext.tsx
+import { createContext, useContext, ReactNode } from 'react';
+import type { ResearchData, Article, Occupation } from '../types';
+
+interface ResearchContextType {
+  currentResearch: ResearchData | null;
+  setCurrentResearch: (data: ResearchData | null) => void;
+  isLoading: boolean;
+  error: string | null;
+}
+
+const ResearchContext = createContext<ResearchContextType | undefined>(undefined);
+
+export function ResearchProvider({ children }: { children: ReactNode }) {
+  // Implementation here
+}
+
+export const useResearch = () => {
+  const context = useContext(ResearchContext);
+  if (context === undefined) {
+    throw new Error('useResearch must be used within a ResearchProvider');
+  }
+  return context;
+}; \n
+// File: ./lib/config/index.ts
+export const config = {
+  api: {
+    baseUrl: process.env.NEXT_PUBLIC_API_URL || '',
+    timeout: 30000
+  }
+}\n
+// File: ./lib/constants/index.ts
+export const API_ENDPOINTS = {
+    CHAT: '/api/chat',
+    OPTIMIZE: '/api/optimize',
+    KEYWORDS: '/api/keywords',
+    PUBMED: '/api/pubmed',
+    RELEVANCE: '/api/relevance',
+    RESEARCH: '/api/research'
+  } as const;
+  
+  export const MAX_RESULTS = 15;
+  export const MAX_TOKENS = {
+    STANDARD: 1800,
+    EXTENDED: 3800
+  } as const;
+  
+  export const STORAGE_FOLDERS = {
+    HISTORY: 'history',
+    CITATIONS: 'citations',
+    RESEARCH: 'research',
+    PDFS: 'pdfs'
+  } as const;\n
+// File: ./lib/utils/relevance.ts
+import type { PubMedArticle } from './pubmed';
+
+export function checkArticleRelevance(
+  query: string,
+  articles: PubMedArticle[],
+  maxResults: number = 10
+): PubMedArticle[] {
+  // Convert query to lowercase terms set
+  const queryTerms = new Set(
+    query.toLowerCase()
+      .split(/\s+/)
+      .filter(term => term.length > 2) // Filter out very short words
+  );
+
+  // Score and sort articles by relevance
+  const scoredArticles = articles.map(article => {
+    const titleTerms = new Set(article.title.toLowerCase().split(/\s+/));
+    const abstractTerms = new Set(article.abstract.toLowerCase().split(/\s+/));
+
+    // Calculate matches in title and abstract
+    const titleMatches = new Set(Array.from(queryTerms).filter(term => titleTerms.has(term)));
+    const abstractMatches = new Set(Array.from(queryTerms).filter(term => abstractTerms.has(term)));
+
+    // Score calculation: title matches count more than abstract matches
+    const score = (titleMatches.size * 2) + abstractMatches.size;
+
+    return {
+      article,
+      score,
+      matches: {
+        title: Array.from(titleMatches),
+        abstract: Array.from(abstractMatches)
+      }
+    };
+  });
+
+  // Sort by score and return top N articles
+  return scoredArticles
+    .filter(item => item.score > 0) // Only keep articles with matches
+    .sort((a, b) => b.score - a.score)
+    .slice(0, maxResults)
+    .map(item => item.article);
+} \n
+// File: ./lib/utils/blob.ts
+import { put, del, list } from '@vercel/blob';
+import type { PutBlobResult, ListBlobResult } from '@vercel/blob';
+
+export const FOLDERS = {
+  HISTORY: 'history',
+  CITATIONS: 'citations',
+  RESEARCH: 'research'
+} as const;
+
+interface StorageOptions {
+  access: 'public';
+  addRandomSuffix?: boolean;
+  token?: string;
+}
+
+export async function uploadFile(
+  path: string,
+  content: string | Blob | ArrayBuffer,
+  options: StorageOptions = { access: 'public' }
+): Promise<PutBlobResult> {
+  try {
+    const blob = await put(path, content, {
+      access: options.access,
+      addRandomSuffix: options.addRandomSuffix,
+      token: options.token,
+    });
+    return blob;
+  } catch (error) {
+    console.error('Error uploading file:', error);
+    throw error;
+  }
+}
+
+export async function getFile(url: string): Promise<Response> {
+  try {
+    const validUrl = url.startsWith('http') ? url : `https://${url}`;
+    const response = await fetch(validUrl);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response;
+  } catch (error) {
+    console.error('Error getting file:', error);
+    throw error;
+  }
+} \n
+// File: ./lib/utils/storage.ts
+import type { Article } from '@/lib/types';
+
+interface ResearchData {
+  question: string;
+  optimizedQuestion: string;
+  keywords: string[];
+  articles: Article[];
+  timestamp: string;
+  occupation: string;
+  answer: string;
+  citations: Article[];
+}
+
+// In-memory storage for development
+const researchStore = new Map<string, ResearchData>();
+
+export async function uploadResearchData(
+  questionId: string,
+  data: ResearchData
+): Promise<string> {
+  try {
+    // Store in memory
+    researchStore.set(questionId, data);
+    return `memory://${questionId}`;
+  } catch (error) {
+    console.error('Error uploading research data:', error);
+    throw error;
+  }
+}
+
+export async function getResearchData(questionId: string): Promise<ResearchData> {
+  try {
+    // Get from memory
+    const data = researchStore.get(questionId);
+    if (!data) {
+      throw new Error(`Research data not found for ID: ${questionId}`);
+    }
+    return data;
+  } catch (error) {
+    console.error('Error getting research data:', error);
+    throw error;
+  }
+}
+
+export const FOLDERS = {
+  HISTORY: 'history',
+  CITATIONS: 'citations',
+  RESEARCH: 'research'
+} as const;\n
+// File: ./lib/utils/context.ts
+export async function getContext(messages: any[]) {
+  // Basic implementation
+  return messages;
+} \n
+// File: ./lib/utils/openai.ts
+import OpenAI from 'openai';
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+  baseURL: "https://api.openai.com/v1"
+});
+
+export type Occupation = "Researcher" | "PhD Physician" | "Psychologist";
+
+export const OCCUPATION_PROMPTS: Record<Occupation, string> = {
+  "Researcher": `You are Brilliance, an elite research analyst providing advanced methodological synthesis.
+
+Format your response in TWO sections:
+
+## 📊 RESEARCH SYNTHESIS
+[Focus on methodological innovations, statistical approaches, and research design implications]
+
+## 🔮 FUTURE DIRECTIONS
+[Discuss emerging methodologies and analytical frameworks]
+
+Text Formatting:
+- Use **bold** for key terms and concepts
+- Create bulleted lists with "-" for multiple points
+- Use > for important quotes or findings
+- Format citations as (Author et al., Year)
+- Use --- for section breaks if needed
+- Keep paragraphs concise and focused
+- Add blank lines between headers, paragraphs, and citations for readability
+
+Key Requirements:
+- Skip basic theoretical background (audience has advanced knowledge)
+- Focus on cutting-edge methodological approaches
+- Analyze statistical innovations and limitations
+- Evaluate novel research designs
+- Discuss methodological challenges and solutions
+- Emphasize replication considerations
+- Address scalability and generalizability
+- Highlight cross-disciplinary applications`,
+
+  "PhD Physician": `You are Brilliance, an elite medical research analyst providing advanced clinical insights.
+
+Format your response in TWO sections:
+
+## 🔬 CLINICAL EVIDENCE SYNTHESIS
+[Focus exclusively on latest findings and treatment approaches - skip basic pathophysiology]
+
+## 🔮 EMERGING PARADIGMS
+[Discuss treatment innovations and future directions]
+
+Text Formatting:
+- Use **bold** for key terms and concepts
+- Create bulleted lists with "-" for multiple points
+- Use > for important quotes or findings
+- Format citations as (Author et al., Year)
+- Use --- for section breaks if needed
+- Keep paragraphs concise and focused
+- Add blank lines between headers, paragraphs, and citations for readability
+
+Key Requirements:
+- Skip basic disease descriptions and standard pathophysiology
+- Focus exclusively on cutting-edge clinical findings
+- Prioritize treatment innovations and outcomes
+- Analyze therapy resistance patterns
+- Discuss novel biomarkers and monitoring approaches
+- Emphasize precision medicine applications
+- Address therapy optimization strategies
+- Consider combination approaches
+- Highlight treatment-resistant cases
+- Focus on practical clinical implementation`,
+
+  "Psychologist": `You are Brilliance, an elite psychological research analyst providing advanced clinical insights.
+
+- CRITICAL: Cite every finding in (Author, Year) format
+- Place citations immediately after each claim
+- Use multiple citations when synthesizing across studies
+
+Format your response in TWO sections:
+
+## 🧠 THERAPEUTIC EVIDENCE SYNTHESIS
+[Focus on intervention outcomes and mechanism insights - skip basic psychological theory]
+
+## 🔮 CLINICAL INNOVATIONS
+[Discuss emerging therapeutic approaches]
+
+Text Formatting:
+- Use **bold** for key terms and concepts
+- Create bulleted lists with "-" for multiple points
+- Use > for important quotes or findings
+- Format citations as (Author et al., Year)
+- Use --- for section breaks if needed
+- Keep paragraphs concise and focused
+- Add blank lines between headers, paragraphs, and citations for readability
+
+Key Requirements:
+- Skip basic psychological theory and mechanisms
+- Focus on advanced therapeutic techniques
+- Analyze treatment resistance patterns
+- Discuss novel assessment approaches
+- Emphasize therapeutic adaptations
+- Address complex case management
+- Consider integrative approaches
+- Highlight clinical pearls
+- Focus on practical implementation
+- Discuss outcome optimization`
+};
+
+export const OPTIMIZATION_PROMPTS: Record<Occupation, string> = {
+  "Researcher": `Transform the question into a precise methodological query focused on research design, 
+    analytical approaches, and methodological innovations. Skip basic concepts.
+    Output only the transformed query.`,
+
+  "PhD Physician": `Transform the question into a precise clinical query focused on treatment outcomes, 
+    therapeutic innovations, and clinical management. Skip basic disease concepts.
+    Output only the transformed query.`,
+
+  "Psychologist": `Transform the question into a precise clinical psychology query focused on 
+    therapeutic outcomes, intervention strategies, and treatment resistance. Skip basic psychological concepts.
+    Output only the transformed query.`
+};
+
+export const NO_SEARCH_PROMPTS: Record<Occupation, string> = {
+  "Researcher": `You are Brilliance, an elite research analyst continuing our research discussion.
+
+INTERNAL CONTEXT (DO NOT REPEAT OR REFERENCE DIRECTLY):
+{message_history}
+
+Key Instructions:
+- Address the follow-up question naturally, using your knowledge of our previous discussion
+- Never explicitly mention "our previous conversation" or "as we discussed"
+- Draw relevant connections from the context to inform your current response
+- If the new question relates to concepts from the context, build upon that knowledge
+- If the question shifts to a new topic, use relevant principles or methodologies from the context
+- Maintain academic depth while keeping responses conversational
+- Keep responses clear and focused on the specific question
+- Maintain the advanced academic tone appropriate for a researcher`,
+
+  "PhD Physician": `You are Brilliance, an elite medical research analyst continuing our clinical discussion.
+
+INTERNAL CONTEXT (DO NOT REPEAT OR REFERENCE DIRECTLY):
+{message_history}
+
+Key Instructions:
+- Address the follow-up question naturally, using your knowledge of our previous discussion
+- Never explicitly mention "our previous conversation" or "as we discussed"
+- Draw relevant connections from the context to inform your current response
+- If the new question relates to concepts from the context, build upon that knowledge
+- If the question shifts to a new topic, use relevant principles or methodologies from the context
+- Maintain clinical precision while keeping responses conversational
+- Keep responses clear and focused on the specific question
+- Maintain the advanced clinical tone appropriate for a physician`,
+
+  "Psychologist": `You are Brilliance, an elite psychological research analyst continuing our clinical discussion.
+
+INTERNAL CONTEXT (DO NOT REPEAT OR REFERENCE DIRECTLY):
+{message_history}
+
+Key Instructions:
+- Address the follow-up question naturally, using your knowledge of our previous discussion
+- Never explicitly mention "our previous conversation" or "as we discussed"
+- Draw relevant connections from the context to inform your current response
+- If the new question relates to concepts from the context, build upon that knowledge
+- If the question shifts to a new topic, use relevant principles or methodologies from the context
+- Maintain clinical precision while keeping responses conversational
+- Keep responses clear and focused on the specific question
+- Maintain the advanced clinical tone appropriate for a psychologist`
+};
+
+export async function optimizeQuestion(question: string, occupation: Occupation = 'Researcher') {
+  try {
+    if (!question) {
+      console.error('Missing required param:', { question });
+      throw new Error('Question is required');
+    }
+
+    console.log('Optimizing question:', { question, occupation });
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: [
+        {
+          "role": "system",
+          "content": OPTIMIZATION_PROMPTS[occupation]
+        },
+        {
+          "role": "user",
+          "content": `Transform this into an optimal ${occupation}-focused query: ${question}`
+        }
+      ],
+      temperature: 0.2
+    });
+
+    const result = completion.choices[0].message.content;
+    console.log('Optimization result:', result);
+    
+    return result;
+  } catch (error) {
+    console.error('Error optimizing question:', error);
+    throw error;
+  }
+} \n
+// File: ./lib/utils/keywords.ts
+import OpenAI from 'openai';
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+  baseURL: "https://api.openai.com/v1"
+});
+
+const KEYWORD_EXTRACTION_PROMPT = `You are an expert in extracting core search terms relevant to academic research.
+Extract EXACTLY 3-4 single words most crucial to the topic. Make sure they are relevant to the users question.
+Avoid general, meta, or stop words. These words will be put into a pubmed search query, so make sure they are appropriate.
+Output format: 'word1, word2, word3[, word4]'`;
+
+export async function extractKeywords(optimizedQuestion: string): Promise<string[]> {
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          "role": "system",
+          "content": [{
+            "type": "text",
+            "text": KEYWORD_EXTRACTION_PROMPT
+          }]
+        },
+        {
+          "role": "user",
+          "content": [{
+            "type": "text",
+            "text": `Extract keywords from: ${optimizedQuestion}`
+          }]
+        }
+      ],
+      temperature: 0.2
+    });
+
+    const content = completion.choices[0].message.content;
+    if (!content) return [];
+
+    const keywords = content.split(',').map((w: string) => w.trim());
+    return keywords.slice(0, 4); // Limit to 4 keywords
+  } catch (error) {
+    console.error('Error extracting keywords:', error);
+    throw error;
+  }
+} \n
+// File: ./lib/utils/download.ts
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
+import { uploadFile, getFile } from './blob';
+
+interface Message {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export const downloadPDF = async () => {
+  const element = document.querySelector('.chat-container') as HTMLElement;
+  if (!element) return;
+
+  const canvas = await html2canvas(element);
+  const imgData = canvas.toDataURL('image/png');
+  
+  const pdf = new jsPDF({
+    orientation: 'portrait',
+    unit: 'px',
+    format: [canvas.width, canvas.height]
+  });
+  
+  pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+  
+  // Convert PDF to blob
+  const pdfBlob = pdf.output('blob');
+  
+  // Upload to Blob storage
+  const key = `pdfs/${Date.now()}-research.pdf`;
+  const { url } = await uploadFile(key, pdfBlob, {
+    access: 'public',
+    addRandomSuffix: true
+  });
+  
+  // Trigger download
+  window.open(url);
+};
+
+export const downloadHistory = async (messages: Message[]) => {
+  const content = messages
+    .map(msg => `${msg.role.toUpperCase()}: ${msg.content}\n\n`)
+    .join('---\n\n');
+    
+  // Upload to Blob storage
+  const key = `history/${Date.now()}-chat-history.txt`;
+  const { url } = await uploadFile(key, content, {
+    access: 'public',
+    addRandomSuffix: true
+  });
+  
+  // Trigger download
+  window.open(url);
+};
+
+export const debugBlob = async (blob: Blob) => {
+  console.log('Blob Debug Info:', {
+    size: blob.size,
+    type: blob.type,
+    stream: blob.stream !== undefined,
+    arrayBuffer: blob.arrayBuffer !== undefined,
+  });
+  
+  try {
+    const text = await blob.text();
+    console.log('Blob content preview:', text.substring(0, 100) + '...');
+  } catch (error) {
+    console.error('Error reading blob:', error);
+  }
+}; \n
+// File: ./lib/utils/pubmed.ts
+import { XMLParser } from 'fast-xml-parser';
+import type { Article } from '@/lib/types';
+
+const NCBI_BASE_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/";
+const NUM_RESULTS = 15;
+
+export interface PubMedArticle extends Article {
+  source: 'PubMed';
+}
+
+export async function searchPubMed(keywords: string[]): Promise<PubMedArticle[]> {
+  if (!keywords.length) {
+    console.warn("No keywords for PubMed search.");
+    return [];
+  }
+
+  try {
+    // Calculate date range
+    const currentYear = new Date().getFullYear();
+    const startYear = currentYear - 4;
+    const query = `${keywords.join(' ')} AND ${startYear}:${currentYear}[pdat]`;
+
+    // Create XML parser
+    const parser = new XMLParser({
+      ignoreAttributes: false,
+      attributeNamePrefix: "@_",
+      textNodeName: "#text"
+    });
+
+    // ESearch with XML
+    const esearchUrl = `${NCBI_BASE_URL}esearch.fcgi?db=pubmed&term=${encodeURIComponent(query)}&retmax=${NUM_RESULTS}&retmode=xml`;
+    const esearchResp = await fetch(esearchUrl);
+    const esearchXml = await esearchResp.text();
+    const esearchData = parser.parse(esearchXml);
+    
+    const idList = esearchData?.eSearchResult?.IdList?.Id || [];
+    if (!Array.isArray(idList) || idList.length === 0) return [];
+
+    // EFetch with XML
+    const efetchUrl = `${NCBI_BASE_URL}efetch.fcgi?db=pubmed&id=${idList.join(',')}&retmode=xml`;
+    const efetchResp = await fetch(efetchUrl);
+    const efetchXml = await efetchResp.text();
+    
+    const xmlData = parser.parse(efetchXml);
+    const articles = xmlData?.PubmedArticleSet?.PubmedArticle || [];
+    
+    // Ensure articles is always an array
+    const articlesArray = Array.isArray(articles) ? articles : [articles];
+    if (!articlesArray.length) return [];
+
+    return articlesArray.map((article: any) => {
+      const medlineCitation = article.MedlineCitation;
+      const articleData = medlineCitation.Article;
+      
+      // Extract abstract
+      let abstract = 'No abstract available';
+      if (articleData.Abstract?.AbstractText) {
+        if (Array.isArray(articleData.Abstract.AbstractText)) {
+          abstract = articleData.Abstract.AbstractText
+            .map((part: any) => part['#text'] || part)
+            .join(' ');
+        } else {
+          abstract = articleData.Abstract.AbstractText['#text'] || articleData.Abstract.AbstractText;
+        }
+      }
+
+      // Extract authors
+      const authors = [];
+      if (articleData.AuthorList?.Author) {
+        const authorList = Array.isArray(articleData.AuthorList.Author) 
+          ? articleData.AuthorList.Author 
+          : [articleData.AuthorList.Author];
+
+        for (const author of authorList) {
+          if (author.LastName && author.ForeName) {
+            authors.push(`${author.LastName} ${author.ForeName}`);
+          }
+        }
+      }
+
+      return {
+        title: articleData.ArticleTitle['#text'] || articleData.ArticleTitle,
+        abstract,
+        authors,
+        published: articleData.Journal?.JournalIssue?.PubDate?.Year || 'Unknown',
+        source: 'PubMed' as const,
+        url: `https://pubmed.ncbi.nlm.nih.gov/${medlineCitation.PMID['#text']}/`
+      };
+    });
+
+  } catch (error) {
+    console.error('Error processing PubMed articles:', error);
+    return [];
+  }
+} \n
+// File: ./lib/hooks/useChat.ts
+'use client';
+
+import { useChat as useVercelChat } from 'ai/react';
+import { useState } from 'react';
+import type { ExtendedMessage, Article, Occupation, ResponseLength } from '@/lib/types';
+import { nanoid } from 'nanoid';
+
+export function useChat() {
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [questionId, setQuestionId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isFetchingArticles, setIsFetchingArticles] = useState(false);
+
+  const chatHelpers = useVercelChat({
+    api: '/api/chat',
+    body: {
+      responseLength: 'standard'
+    },
+    onFinish: async (message: ExtendedMessage) => {
+      if (!questionId) return;
+      
+      setIsFetchingArticles(true);
+      setError(null);
+      
+      try {
+        const response = await fetch(`/api/research/${questionId}`);
+        const data = await response.json();
+        
+        if (data.articles?.length) {
+          setArticles(data.articles);
+        } else {
+          setError('No articles found for this research query');
+        }
+      } catch (error) {
+        console.error('Error fetching research data:', error);
+        setError('An error occurred while loading articles');
+      } finally {
+        setIsFetchingArticles(false);
+      }
+    },
+    onResponse: (response) => {
+      const id = response.headers.get('X-Question-ID');
+      if (id) {
+        setQuestionId(id);
+        setArticles([]);
+        setError(null);
+      }
+    },
+    id: 'research-chat'
+  });
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>, options?: { 
+    data?: {
+      occupation: Occupation;
+      responseLength: ResponseLength;
+    }
+  }) => {
+    e.preventDefault();
+    
+    chatHelpers.append({
+      id: nanoid(),
+      role: 'user',
+      content: chatHelpers.input,
+      metadata: {
+        responseLength: options?.data?.responseLength || 'standard'
+      }
+    } as ExtendedMessage);
+  };
+
+  return {
+    ...chatHelpers,
+    handleSubmit,
+    articles,
+    questionId,
+    error,
+    isFetchingArticles,
+    hasArticles: articles.length > 0,
+    articlesCount: articles.length,
+    messagesCount: chatHelpers.messages.length
+  };
+}\n
+// File: ./lib/hooks/useResearch.ts
+'use client';
+
+import { useState } from 'react';
+import { API_ENDPOINTS } from '@/lib/constants';
+import { nanoid } from 'nanoid';
+
+export function useResearch() {
+  const [isOptimizing, setIsOptimizing] = useState(false);
+
+  const optimizeAndSearch = async (question: string, occupation: string) => {
+    setIsOptimizing(true);
+    try {
+      // Generate questionId
+      const questionId = nanoid();
+
+      // Optimize question
+      const optimizeRes = await fetch(API_ENDPOINTS.OPTIMIZE, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question, occupation })
+      });
+      
+      if (!optimizeRes.ok) throw new Error('Failed to optimize question');
+      const { optimizedQuestion } = await optimizeRes.json();
+      
+      // Extract keywords
+      const keywordsRes = await fetch(API_ENDPOINTS.KEYWORDS, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ optimizedQuestion })
+      });
+      
+      if (!keywordsRes.ok) throw new Error('Failed to extract keywords');
+      const { keywords } = await keywordsRes.json();
+
+      // Search PubMed
+      const pubmedRes = await fetch(API_ENDPOINTS.PUBMED, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keywords })
+      });
+
+      if (!pubmedRes.ok) throw new Error('Failed to search PubMed');
+      const { articles } = await pubmedRes.json();
+
+      // Store research data
+      await fetch(API_ENDPOINTS.RESEARCH, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          questionId,
+          data: {
+            question,
+            optimizedQuestion,
+            keywords,
+            articles,
+            timestamp: new Date().toISOString(),
+            occupation,
+            answer: '',
+            citations: []
+          }
+        })
+      });
+
+      return { questionId, optimizedQuestion };
+    } catch (error) {
+      console.error('Error in optimize and search:', error);
+      throw error;
+    } finally {
+      setIsOptimizing(false);
+    }
+  };
+
+  return { optimizeAndSearch, isOptimizing };
+} \n
+
+=== Config Files ===
+
+// File: next.config.mjs
+/**
+ * @type {import('next').NextConfig}
+ */
+const nextConfig = {
+  reactStrictMode: true,
+  images: {
+    domains: ['localhost'],
+  },
+  webpack: (config) => {
+    config.externals = [...config.externals, { canvas: 'canvas' }];  // Required for jspdf
+    return config;
+  },
+  env: {
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+    AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID,
+    AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY,
+    AWS_REGION: process.env.AWS_REGION,
+  },
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '2mb'
+    }
+  }
+};
+
+export default nextConfig;
+
+// File: tailwind.config.js
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    './pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './components/**/*.{js,ts,jsx,tsx,mdx}',
+    './app/**/*.{js,ts,jsx,tsx,mdx}',
+  ],
+  theme: {
+    extend: {},
+  },
+  plugins: [],
+} 
+
+// File: tailwind.config.ts
+import type { Config } from 'tailwindcss';
+
+const config: Config = {
+  content: [
+    './pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './components/**/*.{js,ts,jsx,tsx,mdx}',
+    './app/**/*.{js,ts,jsx,tsx,mdx}',
+  ],
+  darkMode: 'class',
+  theme: {
+    extend: {
+      colors: {
+        primary: {
+          50: '#f0f9ff',
+          100: '#e0f2fe',
+          200: '#bae6fd',
+          300: '#7dd3fc',
+          400: '#38bdf8',
+          500: '#0ea5e9',
+          600: '#0284c7',
+          700: '#0369a1',
+          800: '#075985',
+          900: '#0c4a6e',
+          950: '#082f49',
+        },
+      },
+    },
+  },
+  plugins: [
+    require('@tailwindcss/typography'),
+    require('@tailwindcss/forms'),
+  ],
+};
+
+export default config;
+
+
+// File: postcss.config.js
+module.exports = {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+}
+
+
+// File: postcss.config.mjs
+export default {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+}
+
+
+// File: tsconfig.json
+{
+  "compilerOptions": {
+    "target": "es2015",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./*"],
+      "@/components/*": ["./components/*"],
+      "@/lib/*": ["./lib/*"],
+      "@/types/*": ["./types/*"],
+      "@/utils/*": ["./utils/*"]
+    }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
+}
+
+
