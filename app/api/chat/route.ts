@@ -90,4 +90,4 @@ ${articles.map(a => `- ${a.authors[0]} et al. (${a.published}) - "${a.title}"`).
   }
 }
 
-export const runtime = 'edge';
+// export const runtime = 'edge';

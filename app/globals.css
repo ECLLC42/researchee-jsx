@@ -2,6 +2,52 @@
 @tailwind components;
 @tailwind utilities;
 
+/* iOS-specific styles */
+@supports (-webkit-touch-callout: none) {
+  .min-h-screen {
+    min-height: -webkit-fill-available;
+  }
+  
+  .h-screen {
+    height: -webkit-fill-available;
+  }
+}
+
+/* Prevent text size adjustment on iOS */
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Improve touch targets */
+button, 
+select, 
+textarea {
+  min-height: 44px; /* iOS minimum touch target size */
+}
+
+/* Prevent iOS double-tap zoom */
+* {
+  touch-action: manipulation;
+}
+
+/* Disable iOS tap highlight */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Smooth scrolling for iOS */
+.overflow-auto, 
+.overflow-y-auto {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Fix iOS input styles */
+input, 
+textarea {
+  -webkit-appearance: none;
+  border-radius: 0;
+}
+
 /* Check if any prose classes are overriding spacing */
 .prose {
   /* ... */
