@@ -67,7 +67,7 @@ export default function ChatInput({
   }, []);
 
   return (
-    <div className="border-t border-gray-800 bg-gray-950/80 backdrop-blur-sm p-4 pb-[env(safe-area-inset-bottom)]">
+    <div className="border-t border-gray-800 bg-gray-950/80 backdrop-blur-sm p-4 pb-12 mb-4 pb-[env(safe-area-inset-bottom)]">
       <form onSubmit={handleSubmit} className="max-w-4xl mx-auto space-y-8">
         <div className="flex flex-col sm:flex-row justify-center items-center gap-4 bg-gray-900/50 p-4 rounded-lg">
           <div className="w-full sm:w-auto text-center">
