@@ -48,14 +48,10 @@ export async function POST(req: Request) {
     const maxTokens = responseLength === 'extended' ? 3800 : 1800;
 
     const stream = await streamText({
-      model: openai('gpt-4o'),
+      model: openai('o3-mini'),
+      reasoning_effort: 'high',
       messages: [
         { 
-          role: 'system', 
-          content: SYSTEM_PROMPT(occupation as Occupation)
-        },
-        ...messages,
-        {
           role: 'user',
           content: `Format your response using:
 - **Bold** for key terms and concepts
