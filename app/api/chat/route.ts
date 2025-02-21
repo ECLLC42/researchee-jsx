@@ -28,11 +28,11 @@ export async function POST(req: Request) {
     const userMessage = messages[messages.length - 1].content;
     const questionId = nanoid();
 
-    // 1. Extract keywords and search
+    // Extract keywords and search PubMed
     const keywords = await extractKeywords(userMessage);
     const articles = await searchPubMed(keywords);
 
-    // 2. Store research data
+    // Store research data
     await uploadResearchData(questionId, {
       question: userMessage,
       optimizedQuestion: userMessage,
@@ -44,26 +44,29 @@ export async function POST(req: Request) {
       citations: []
     });
 
-    // 3. Generate response with streaming
-    const maxTokens = responseLength === 'extended' ? 3800 : 1800;
+    // Set token limit based on response length
+    const max_completion_tokens = responseLength === 'extended' ? 3800 : 1800;
 
+    // Generate response with streaming using updated parameters
     const stream = await streamText({
       model: openai('o3-mini'),
-      reasoning_effort: 'high',
       messages: [
         { 
           role: 'user',
           content: `Format your response using:
-- **Bold** for key terms and concepts
-- Add TWO blank lines before each header (##)
-- Add ONE blank line between paragraphs
-- Add ONE blank line before and after bullet point lists
-- Add ONE blank line before and after quotes
-- Add ONE blank line before and after citations
-- Use bullet points with "-" for lists
-- Use > for important quotes
-- Format citations as (Author et al., Year)
-- Form your response as a narrative, not a list of bullet points or list of sources. Provide a clear and cohesive response at an above PhD level.
+**Bold** for key terms and concepts
+
+Add TWO blank lines before each header (##)
+Add ONE blank line between paragraphs
+Add ONE blank line before and after bullet point lists
+Add ONE blank line before and after quotes
+Add ONE blank line before and after citations
+
+Use bullet points with "-" for lists
+Use > for important quotes
+
+Format citations as (Author et al., Year)
+Form your response as a narrative, not as a list of bullet points or sources. Provide a clear, cohesive answer at an above PhD level.
 
 ${userMessage}`
         },
@@ -73,7 +76,10 @@ ${userMessage}`
 ${articles.map(a => `- ${a.authors[0]} et al. (${a.published}) - "${a.title}"`).join('\n')}`
         }
       ],
-      maxTokens
+      providerOptions: {
+         openai: { reasoningEffort: 'high' }
+      },
+      max_completion_tokens
     });
 
     const response = stream.toDataStreamResponse();
@@ -85,5 +91,3 @@ ${articles.map(a => `- ${a.authors[0]} et al. (${a.published}) - "${a.title}"`).
     return new Response('Internal Server Error', { status: 500 });
   }
 }
-
-// export const runtime = 'edge';
