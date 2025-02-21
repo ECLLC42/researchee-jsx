@@ -8,10 +8,7 @@ export const API_ENDPOINTS = {
   } as const;
   
   export const MAX_RESULTS = 15;
-  export const MAX_TOKENS = {
-    STANDARD: 1800,
-    EXTENDED: 3800
-  } as const;
+
   
   export const STORAGE_FOLDERS = {
     HISTORY: 'history',

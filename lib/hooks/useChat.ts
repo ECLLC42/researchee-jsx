@@ -38,13 +38,25 @@ export function useChat() {
         setIsFetchingArticles(false);
       }
     },
-    onResponse: (response) => {
+    onResponse: async (response) => {
       const id = response.headers.get('X-Question-ID');
       if (id) {
         setQuestionId(id);
         setArticles([]);
         setError(null);
       }
+      
+      // Clone the response since it can only be read once
+      const clone = response.clone();
+      // Read the response content
+      const content = await clone.text();
+      
+      // Append the assistant's message
+      chatHelpers.setMessages(prev => [...prev, {
+        id: nanoid(),
+        role: 'assistant',
+        content
+      }]);
     },
     id: 'research-chat'
   });
