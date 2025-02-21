@@ -10,7 +10,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^1.0.7",
+    "@ai-sdk/openai": "^1.1.9",
     "@heroicons/react": "^2.2.0",
     "@types/html2canvas": "^0.5.35",
     "@vercel/analytics": "^1.4.1",
