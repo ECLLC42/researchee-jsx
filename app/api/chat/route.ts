@@ -10,6 +10,8 @@ const openaiClient = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
+export const runtime = 'edge';
+export const preferredRegion = ['iad1'];
 export const maxDuration = 300; // 5 minutes timeout
 
 // Add a new constant for non-search prompts
@@ -26,15 +28,6 @@ const BASIC_PROMPTS: Record<Occupation, string> = {
     Focus on providing accurate, well-structured psychological insights without citations.
     Maintain clinical depth while being concise and accessible.`
 };
-
-// For Edge functions specifically
-export const config = {
-  runtime: 'edge',
-  regions: ['iad1'], // Optional: specify regions
-  maxDuration: 300
-};
-
-export const runtime = 'edge';
 
 export async function POST(req: Request) {
   const controller = new AbortController();
