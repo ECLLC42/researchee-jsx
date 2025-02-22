@@ -81,9 +81,9 @@ export function useChat() {
       
       chatHelpers.setMessages((prev: Message[]) => [...prev, {
         id: nanoid(),
-        role: 'assistant',
+        role: 'assistant' as const,
         content
-      }]);
+      } as Message]);
     },
     id: 'research-chat'
   });
@@ -105,13 +105,13 @@ export function useChat() {
 
     chatHelpers.append({
       id: nanoid(),
-      role: 'user',
+      role: 'user' as const,
       content: chatHelpers.input,
       metadata: {
         responseLength: options?.data?.responseLength || 'standard',
         withSearch: options?.data?.withSearch
       }
-    } as ExtendedMessage);
+    } as Message);
 
     chatHelpers.setInput('');
   };
