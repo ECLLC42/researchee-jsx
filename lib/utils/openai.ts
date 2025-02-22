@@ -116,7 +116,7 @@ export async function optimizeQuestion(question: string, occupation: Occupation 
     console.log('Optimizing question:', { question, occupation });
 
     const completion = await openai.chat.completions.create({
-      model: "o3-mini",
+      model: "o1-mini",
       messages: [
         {
           role: "user",
@@ -125,7 +125,7 @@ export async function optimizeQuestion(question: string, occupation: Occupation 
 Transform this into an optimal ${occupation}-focused query: ${question}`
         }
       ],
-      reasoning_effort: "high"
+      reasoning_effort: "low"
     } as any);
 
     const result = completion.choices[0].message.content;
