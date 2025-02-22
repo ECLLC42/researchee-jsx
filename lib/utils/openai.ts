@@ -125,7 +125,6 @@ export async function optimizeQuestion(question: string, occupation: Occupation 
 Transform this into an optimal ${occupation}-focused query: ${question}`
         }
       ],
-      reasoning_effort: "low"
     } as any);
 
     const result = completion.choices[0].message.content;

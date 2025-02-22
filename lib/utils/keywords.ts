@@ -21,7 +21,7 @@ export async function extractKeywords(optimizedQuestion: string): Promise<string
 Extract keywords from: ${optimizedQuestion}`
         }
       ],
-      model: "gpt-4o-mini",
+      model: "o1-mini",
     } as any);
     
     const content = completion.choices[0].message.content;
