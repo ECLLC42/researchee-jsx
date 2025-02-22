@@ -41,9 +41,21 @@ export function useResearch() {
       });
 
       if (!pubmedRes.ok) throw new Error('Failed to search PubMed');
-      const { articles } = await pubmedRes.json();
+      const { articles: pubmedArticles } = await pubmedRes.json();
+      
+      // Search arXiv by calling your new API route
+      const arxivRes = await fetch(`/api/arxiv?q=${encodeURIComponent(keywords.join(' '))}`);
+      let arxivArticles = [];
+      if (arxivRes.ok) {
+        arxivArticles = await arxivRes.json();
+      } else {
+        console.warn('arXiv search failed');
+      }
+      
+      // Merge the articles from both sources
+      const mergedArticles = [...pubmedArticles, ...arxivArticles];
 
-      // Store research data
+      // Store research data with merged articles
       await fetch(API_ENDPOINTS.RESEARCH, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -53,7 +65,7 @@ export function useResearch() {
             question,
             optimizedQuestion,
             keywords,
-            articles,
+            articles: mergedArticles,
             timestamp: new Date().toISOString(),
             occupation,
             answer: '',

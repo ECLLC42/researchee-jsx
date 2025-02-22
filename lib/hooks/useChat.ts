@@ -17,6 +17,8 @@ export function useChat() {
       responseLength: 'standard'
     },
     onFinish: async (message: ExtendedMessage) => {
+      if (!message.metadata?.withSearch) return;
+      
       if (!questionId) return;
       
       setIsFetchingArticles(true);
@@ -27,31 +29,55 @@ export function useChat() {
         const data = await response.json();
         
         if (data.articles?.length) {
+          console.log(`[Chat] Loaded ${data.articles.length} articles on finish`);
           setArticles(data.articles);
         } else {
+          console.warn('[Chat] No articles in research data');
           setError('No articles found for this research query');
         }
       } catch (error) {
-        console.error('Error fetching research data:', error);
+        console.error('[Chat] Error fetching research data:', error);
         setError('An error occurred while loading articles');
       } finally {
         setIsFetchingArticles(false);
       }
     },
     onResponse: async (response) => {
-      const id = response.headers.get('X-Question-ID');
-      if (id) {
-        setQuestionId(id);
+      const searchEnabled = response.headers.get('X-Search-Enabled') === 'true';
+      
+      if (searchEnabled) {
+        const id = response.headers.get('X-Question-ID');
+        if (id) {
+          setQuestionId(id);
+          setArticles([]);
+          setError(null);
+          setIsFetchingArticles(true);
+
+          try {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            const researchResponse = await fetch(`/api/research/${id}`);
+            const data = await researchResponse.json();
+            
+            if (data.articles?.length) {
+              console.log(`[Chat] Loaded ${data.articles.length} articles on response`);
+              setArticles(data.articles);
+              setError(null);
+            }
+          } catch (error) {
+            console.error('[Chat] Error fetching research data:', error);
+          } finally {
+            setIsFetchingArticles(false);
+          }
+        }
+      } else {
         setArticles([]);
         setError(null);
+        setIsFetchingArticles(false);
       }
       
-      // Clone the response since it can only be read once
       const clone = response.clone();
-      // Read the response content
       const content = await clone.text();
       
-      // Append the assistant's message
       chatHelpers.setMessages(prev => [...prev, {
         id: nanoid(),
         role: 'assistant',
@@ -65,18 +91,28 @@ export function useChat() {
     data?: {
       occupation: Occupation;
       responseLength: ResponseLength;
+      withSearch: boolean;
     }
   }) => {
     e.preventDefault();
     
+    if (!options?.data?.withSearch) {
+      setArticles([]);
+      setError(null);
+      setIsFetchingArticles(false);
+    }
+
     chatHelpers.append({
       id: nanoid(),
       role: 'user',
       content: chatHelpers.input,
       metadata: {
-        responseLength: options?.data?.responseLength || 'standard'
+        responseLength: options?.data?.responseLength || 'standard',
+        withSearch: options?.data?.withSearch
       }
     } as ExtendedMessage);
+
+    chatHelpers.setInput('');
   };
 
   return {

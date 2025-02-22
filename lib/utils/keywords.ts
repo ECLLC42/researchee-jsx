@@ -12,19 +12,18 @@ Output format: 'word1, word2, word3[, word4]'`;
 
 export async function extractKeywords(optimizedQuestion: string): Promise<string[]> {
   try {
-    const completion: Awaited<ReturnType<typeof openai.chat.completions.create>> = await openai.chat.completions.create({
+    const completion = await openai.chat.completions.create({
       messages: [
         {
-          role: "system",
-          content: KEYWORD_EXTRACTION_PROMPT
-        },
-        {
           role: "user",
-          content: `Extract keywords from: ${optimizedQuestion}`
+          content: `${KEYWORD_EXTRACTION_PROMPT}
+
+Extract keywords from: ${optimizedQuestion}`
         }
       ],
-      model: "o3-mini"
-    });
+      model: "o3-mini",
+      reasoning_effort: "high"
+    } as any);
     
     const content = completion.choices[0].message.content;
     if (!content) return [];

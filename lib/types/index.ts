@@ -68,5 +68,6 @@ export interface ExtendedMessage extends Message {
     keywords?: string[];
     occupation?: string;
     questionId?: string;
+    withSearch?: boolean;
   };
 } 
