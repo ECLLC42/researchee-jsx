@@ -27,6 +27,8 @@ const BASIC_PROMPTS: Record<Occupation, string> = {
     Maintain clinical depth while being concise and accessible.`
 };
 
+export const runtime = 'edge';
+
 export async function POST(req: Request) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 58000);
@@ -65,13 +67,14 @@ export async function POST(req: Request) {
 
       // Search arXiv
       try {
-        // Use relative URL for internal API calls
-        const arxivRes = await fetch(
-          `/api/arxiv?q=${encodeURIComponent(keywords.join(' '))}`,
-          { 
-            headers: { 'Content-Type': 'application/json' }
-          }
-        );
+        // For Edge Runtime, we can use Request.url to get the base URL
+        const url = new URL(req.url);
+        const arxivUrl = new URL('/api/arxiv', url.origin);
+        arxivUrl.searchParams.set('q', keywords.join(' '));
+
+        const arxivRes = await fetch(arxivUrl, { 
+          headers: { 'Content-Type': 'application/json' }
+        });
 
         if (arxivRes.ok) {
           const arxivArticles = await arxivRes.json();
