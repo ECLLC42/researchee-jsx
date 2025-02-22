@@ -16,6 +16,11 @@ export function useChat() {
     body: {
       responseLength: 'standard'
     },
+    onError: (error) => {
+      console.error('[Chat] Error in chat response:', error);
+      setError('The request timed out. Please try again.');
+      setIsFetchingArticles(false);
+    },
     onFinish: async (message: ExtendedMessage) => {
       if (!message.metadata?.withSearch) return;
       

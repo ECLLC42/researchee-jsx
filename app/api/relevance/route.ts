@@ -2,35 +2,38 @@ import { NextResponse } from 'next/server';
 import { checkArticleRelevance } from '@/lib/utils/relevance';
 import type { PubMedArticle } from '@/lib/utils/pubmed';
 
-export async function POST(request: Request) {
+export const runtime = 'edge'; // Use edge runtime for better performance
+
+export async function POST(req: Request) {
   try {
-    const { query, articles } = await request.json();
+    const { messages } = await req.json();
+    
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-3.5-turbo',
+        messages,
+        temperature: 0.7,
+        max_tokens: 500, // Reduce tokens to speed up response
+        timeout: 15000, // 15 second timeout
+      }),
+    });
 
-    if (!query || !articles?.length) {
-      return NextResponse.json(
-        { error: 'Query and articles are required' },
-        { status: 400 }
-      );
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${response.status}`);
     }
 
-    const relevantArticles = checkArticleRelevance(
-      query,
-      articles as PubMedArticle[],
-      10
-    );
-
-    if (!relevantArticles.length) {
-      return NextResponse.json(
-        { error: 'No relevant articles found' },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json({ articles: relevantArticles });
+    const data = await response.json();
+    
+    return NextResponse.json(data);
   } catch (error) {
-    console.error('Error checking article relevance:', error);
+    console.error('[Relevance] Error:', error);
     return NextResponse.json(
-      { error: 'Failed to check article relevance' },
+      { error: 'Processing failed' },
       { status: 500 }
     );
   }

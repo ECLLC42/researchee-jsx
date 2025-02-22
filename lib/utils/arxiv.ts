@@ -42,3 +42,26 @@ export async function fetchArxiv(query: string) {
     throw error;
   }
 }
+
+export async function searchArxiv(query: string) {
+  try {
+    const response = await fetch('/api/arxiv', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ query }),
+    });
+
+    if (!response.ok) {
+      console.error('[arXiv] Search failed:', response.status, await response.text());
+      return [];
+    }
+
+    const data = await response.json();
+    return data.articles || [];
+  } catch (error) {
+    console.error('[arXiv] Search error:', error);
+    return [];
+  }
+}
