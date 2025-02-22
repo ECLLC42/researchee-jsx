@@ -52,7 +52,7 @@ export function useChat() {
       const clone = response.clone();
       const content = await clone.text();
       
-      chatHelpers.setMessages((prev: Message[]) => [...prev, {
+      chatHelpers.setMessages([...chatHelpers.messages, {
         id: nanoid(),
         role: 'assistant' as const,
         content
