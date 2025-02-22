@@ -1,10 +1,9 @@
 'use client';
 
-import { useChat as useVercelChat } from 'ai/react';
+import { useChat as useVercelChat, Message } from 'ai/react';
 import { useState } from 'react';
 import type { ExtendedMessage, Article, Occupation, ResponseLength } from '@/lib/types';
 import { nanoid } from 'nanoid';
-import type { Message } from 'ai';
 
 export function useChat() {
   const [articles, setArticles] = useState<Article[]>([]);
@@ -79,11 +78,13 @@ export function useChat() {
       const clone = response.clone();
       const content = await clone.text();
       
-      chatHelpers.setMessages((prev: Message[]) => [...prev, {
+      const newMessages = [...chatHelpers.messages, {
         id: nanoid(),
         role: 'assistant' as const,
         content
-      } as Message]);
+      } as Message];
+      
+      chatHelpers.setMessages(newMessages);
     },
     id: 'research-chat'
   });
@@ -103,7 +104,7 @@ export function useChat() {
       setIsFetchingArticles(false);
     }
 
-    chatHelpers.append({
+    const newMessages = [...chatHelpers.messages, {
       id: nanoid(),
       role: 'user' as const,
       content: chatHelpers.input,
@@ -111,8 +112,9 @@ export function useChat() {
         responseLength: options?.data?.responseLength || 'standard',
         withSearch: options?.data?.withSearch
       }
-    } as Message);
+    } as Message];
 
+    chatHelpers.setMessages(newMessages);
     chatHelpers.setInput('');
   };
 
