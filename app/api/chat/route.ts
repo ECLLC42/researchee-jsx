@@ -9,7 +9,12 @@ const openaiClient = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
+export const maxDuration = 60;  // 60 second timeout
+
 export async function POST(req: Request) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 58000); // Abort just before timeout
+
   try {
     const { messages, occupation = 'Researcher', responseLength = 'standard' } = await req.json();
     const userMessage = messages[messages.length - 1].content;
@@ -82,16 +87,21 @@ ${userMessage}`
 ${articles.map(a => `- ${a.authors[0]} et al. (${a.published}) - "${a.title}"`).join('\n')}`
         }
       ],
-    });
+    }, { signal: controller.signal });  // Add abort signal
 
     // Log the full response so you can debug what's coming back from OpenAI.
     console.log('OpenAI API response:', JSON.stringify(completion, null, 2));
 
+    clearTimeout(timeoutId);
     const response = new Response(completion.choices[0].message.content);
     response.headers.set('X-Question-ID', questionId);
     return response;
 
-  } catch (error) {
+  } catch (error: unknown) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === 'AbortError') {
+      return new Response('Request timeout', { status: 408 });
+    }
     console.error('Chat API error:', JSON.stringify(error, null, 2));
     if ((error as any).response) {
       console.error('Error response:', JSON.stringify((error as any).response, null, 2));
