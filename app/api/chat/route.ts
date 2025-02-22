@@ -10,7 +10,7 @@ const openaiClient = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-export const maxDuration = 60;  // 60 second timeout
+export const maxDuration = 300; // 5 minutes timeout
 
 // Add a new constant for non-search prompts
 const BASIC_PROMPTS: Record<Occupation, string> = {
@@ -27,11 +27,18 @@ const BASIC_PROMPTS: Record<Occupation, string> = {
     Maintain clinical depth while being concise and accessible.`
 };
 
+// For Edge functions specifically
+export const config = {
+  runtime: 'edge',
+  regions: ['iad1'], // Optional: specify regions
+  maxDuration: 300
+};
+
 export const runtime = 'edge';
 
 export async function POST(req: Request) {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 58000);
+  const timeoutId = setTimeout(() => controller.abort(), 290000); // 4.8 minutes
 
   try {
     console.log('[Chat API] Received request');
@@ -125,6 +132,8 @@ export async function POST(req: Request) {
       response.headers.set('X-Question-ID', questionId);
       response.headers.set('X-Study-Count', allArticles.length.toString());
       response.headers.set('X-Search-Enabled', 'true');
+
+      clearTimeout(timeoutId); // Clear timeout on success
       return response;
 
     } else {
