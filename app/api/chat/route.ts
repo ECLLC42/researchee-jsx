@@ -32,6 +32,7 @@ export async function POST(req: Request) {
   const timeoutId = setTimeout(() => controller.abort(), 58000);
 
   try {
+    console.log('[Chat API] Received request');
     const { messages, occupation = 'Researcher', responseLength = 'standard' } = await req.json();
     const userMessage = messages[messages.length - 1].content;
     const withSearch = messages[messages.length - 1].metadata?.withSearch ?? true;

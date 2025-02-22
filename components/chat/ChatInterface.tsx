@@ -19,6 +19,9 @@ export default function ChatInterface() {
     isFetchingArticles,
   } = useChat();
 
+  // Add logging
+  console.log('[Chat] State:', { isLoading, messages, articles });
+
   const hasArticles = Array.isArray(articles) && articles.length > 0;
 
   return (

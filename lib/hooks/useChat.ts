@@ -44,47 +44,49 @@ export function useChat() {
     },
     onResponse: async (response) => {
       const searchEnabled = response.headers.get('X-Search-Enabled') === 'true';
+      const id = response.headers.get('X-Question-ID');
       
-      if (searchEnabled) {
-        const id = response.headers.get('X-Question-ID');
-        if (id) {
-          setQuestionId(id);
-          setArticles([]);
-          setError(null);
-          setIsFetchingArticles(true);
+      console.log('[Chat] Response received:', { searchEnabled, id });
 
-          try {
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            const researchResponse = await fetch(`/api/research/${id}`);
-            const data = await researchResponse.json();
-            
-            if (data.articles?.length) {
-              console.log(`[Chat] Loaded ${data.articles.length} articles on response`);
-              setArticles(data.articles);
-              setError(null);
-            }
-          } catch (error) {
-            console.error('[Chat] Error fetching research data:', error);
-          } finally {
-            setIsFetchingArticles(false);
+      // Handle the response content first
+      const clone = response.clone();
+      const content = await clone.text();
+      
+      chatHelpers.setMessages((prev: Message[]) => [...prev, {
+        id: nanoid(),
+        role: 'assistant' as const,
+        content
+      } as Message]);
+
+      // Then handle research data if search was enabled
+      if (searchEnabled && id) {
+        setQuestionId(id);
+        setArticles([]);
+        setError(null);
+        setIsFetchingArticles(true);
+
+        try {
+          // Slight delay to ensure data is stored
+          await new Promise(resolve => setTimeout(resolve, 500));
+          const researchResponse = await fetch(`/api/research/${id}`);
+          const data = await researchResponse.json();
+          
+          if (data.articles?.length) {
+            console.log(`[Chat] Loaded ${data.articles.length} articles`);
+            setArticles(data.articles);
+            setError(null);
           }
+        } catch (error) {
+          console.error('[Chat] Error fetching research data:', error);
+        } finally {
+          setIsFetchingArticles(false);
         }
       } else {
+        // Clear research data for non-search responses
         setArticles([]);
         setError(null);
         setIsFetchingArticles(false);
       }
-      
-      const clone = response.clone();
-      const content = await clone.text();
-      
-      const newMessages = [...chatHelpers.messages, {
-        id: nanoid(),
-        role: 'assistant' as const,
-        content
-      } as Message];
-      
-      chatHelpers.setMessages(newMessages);
     },
     id: 'research-chat'
   });
@@ -97,14 +99,15 @@ export function useChat() {
     }
   }) => {
     e.preventDefault();
-    
+    console.log('[Chat] Submitting message:', chatHelpers.input);
+
     if (!options?.data?.withSearch) {
       setArticles([]);
       setError(null);
       setIsFetchingArticles(false);
     }
 
-    const newMessages = [...chatHelpers.messages, {
+    chatHelpers.append({
       id: nanoid(),
       role: 'user' as const,
       content: chatHelpers.input,
@@ -112,9 +115,8 @@ export function useChat() {
         responseLength: options?.data?.responseLength || 'standard',
         withSearch: options?.data?.withSearch
       }
-    } as Message];
+    } as Message);
 
-    chatHelpers.setMessages(newMessages);
     chatHelpers.setInput('');
   };
 
