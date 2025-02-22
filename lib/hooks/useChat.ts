@@ -4,6 +4,7 @@ import { useChat as useVercelChat } from 'ai/react';
 import { useState } from 'react';
 import type { ExtendedMessage, Article, Occupation, ResponseLength } from '@/lib/types';
 import { nanoid } from 'nanoid';
+import type { Message } from 'ai';
 
 export function useChat() {
   const [articles, setArticles] = useState<Article[]>([]);
@@ -78,7 +79,7 @@ export function useChat() {
       const clone = response.clone();
       const content = await clone.text();
       
-      chatHelpers.setMessages(prev => [...prev, {
+      chatHelpers.setMessages((prev: Message[]) => [...prev, {
         id: nanoid(),
         role: 'assistant',
         content
