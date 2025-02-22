@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     const relevantArticles = checkArticleRelevance(
       query,
       articles as PubMedArticle[],
-      25
+      10
     );
 
     if (!relevantArticles.length) {

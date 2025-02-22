@@ -3,7 +3,7 @@ import { parseStringPromise } from 'xml2js';
 
 export async function fetchArxiv(query: string) {
   try {
-    const apiUrl = `http://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(query)}&start=0&max_results=25`;
+    const apiUrl = `http://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(query)}&start=0&max_results=10`;
     const response = await fetch(apiUrl);
     if (!response.ok) {
       throw new Error('Failed to fetch from arXiv');
