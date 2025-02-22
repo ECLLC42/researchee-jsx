@@ -63,15 +63,14 @@ export async function POST(req: Request) {
         console.error('[Articles] PubMed search failed:', error);
       }
 
-      // Search arXiv (proceed regardless of PubMed results)
+      // Search arXiv
       try {
-        const baseUrl = process.env.VERCEL_URL 
-          ? `https://${process.env.VERCEL_URL}` 
-          : 'http://localhost:9751';  // Match your dev port
-        
+        // Use relative URL for internal API calls
         const arxivRes = await fetch(
-          `${baseUrl}/api/arxiv?q=${encodeURIComponent(keywords.join(' '))}`,
-          { headers: { 'Content-Type': 'application/json' } }
+          `/api/arxiv?q=${encodeURIComponent(keywords.join(' '))}`,
+          { 
+            headers: { 'Content-Type': 'application/json' }
+          }
         );
 
         if (arxivRes.ok) {
