@@ -10,6 +10,7 @@ interface ChatInputProps {
       occupation: Occupation;
       responseLength: ResponseLength;
       withSearch: boolean;
+      searchSource: 'pubmed' | 'arxiv' | 'both';
     }
   }) => void;
   input: string;
@@ -26,6 +27,7 @@ export default function ChatInput({
   const [occupation, setOccupation] = useState<Occupation>('Researcher');
   const [responseLength, setResponseLength] = useState<ResponseLength>('standard');
   const [withSearch, setWithSearch] = useState(true);
+  const [searchSource, setSearchSource] = useState<'pubmed' | 'arxiv' | 'both'>('both');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -35,7 +37,8 @@ export default function ChatInput({
         data: {
           occupation,
           responseLength,
-          withSearch
+          withSearch,
+          searchSource
         }
       });
       // Clear the textarea
@@ -107,6 +110,21 @@ export default function ChatInput({
               >
                 <option value="standard">📝 Standard</option>
                 <option value="extended">📚 Extended</option>
+              </select>
+            </div>
+
+            <div className="relative w-full sm:w-auto">
+              <ChevronDownIcon className="absolute right-3 top-3 w-4 h-4 text-gray-400 pointer-events-none" />
+              <select
+                value={searchSource}
+                onChange={(e) => setSearchSource(e.target.value as 'pubmed' | 'arxiv' | 'both')}
+                className="bg-gray-800 border border-gray-700 rounded-lg pl-4 pr-10 py-2.5 text-gray-200 
+                  appearance-none w-full sm:w-auto hover:border-gray-600 focus:border-blue-500/50
+                  transition-colors text-center"
+              >
+                <option value="both">🔍 Both APIs</option>
+                <option value="pubmed">🏥 PubMed</option>
+                <option value="arxiv">📚 arXiv</option>
               </select>
             </div>
 

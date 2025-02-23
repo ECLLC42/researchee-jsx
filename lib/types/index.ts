@@ -11,6 +11,7 @@ export interface ChatMessage {
     keywords?: string[];
     occupation?: Occupation;
     questionId?: string;
+    searchSource?: 'pubmed' | 'arxiv' | 'both';
   };
 }
 
@@ -61,13 +62,18 @@ export interface SearchResult {
   optimizedQuestion: string;
 }
 
+export interface MessageMetadata {
+  articles?: Article[];
+  originalQuestion?: string;
+  keywords?: string[];
+  occupation?: string;
+  questionId?: string;
+  withSearch?: boolean;
+  searchSource?: 'pubmed' | 'arxiv' | 'both';
+  responseLength?: 'short' | 'standard' | 'detailed';
+  citations?: string[];
+}
+
 export interface ExtendedMessage extends Message {
-  metadata?: {
-    articles?: Article[];
-    originalQuestion?: string;
-    keywords?: string[];
-    occupation?: string;
-    questionId?: string;
-    withSearch?: boolean;
-  };
+  metadata?: MessageMetadata;
 } 

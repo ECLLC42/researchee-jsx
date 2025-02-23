@@ -17,8 +17,10 @@ export async function searchPubMed(keywords: string[]): Promise<PubMedArticle[]>
   try {
     // Calculate date range
     const currentYear = new Date().getFullYear();
-    const startYear = currentYear - 4;
+    const startYear = currentYear - 10;
     const query = `${keywords.join(' ')} AND ${startYear}:${currentYear}[pdat]`;
+
+    console.log('[PubMed] Searching with query:', query);
 
     // Create XML parser
     const parser = new XMLParser({

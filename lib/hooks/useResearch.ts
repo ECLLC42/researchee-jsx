@@ -3,11 +3,12 @@
 import { useState } from 'react';
 import { API_ENDPOINTS } from '@/lib/constants';
 import { nanoid } from 'nanoid';
+import type { ResearchData, Occupation } from '@/lib/types';
 
 export function useResearch() {
   const [isOptimizing, setIsOptimizing] = useState(false);
 
-  const optimizeAndSearch = async (question: string, occupation: string) => {
+  const optimizeAndSearch = async (question: string, occupation: Occupation) => {
     setIsOptimizing(true);
     try {
       // Generate questionId
@@ -55,22 +56,25 @@ export function useResearch() {
       // Merge the articles from both sources
       const mergedArticles = [...pubmedArticles, ...arxivArticles];
 
+      // Add type safety to the research data
+      const researchData: Omit<ResearchData, 'id'> = {
+        question,
+        optimizedQuestion,
+        keywords,
+        articles: mergedArticles,
+        timestamp: new Date().toISOString(),
+        occupation,
+        answer: '',
+        citations: []
+      };
+
       // Store research data with merged articles
       await fetch(API_ENDPOINTS.RESEARCH, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           questionId,
-          data: {
-            question,
-            optimizedQuestion,
-            keywords,
-            articles: mergedArticles,
-            timestamp: new Date().toISOString(),
-            occupation,
-            answer: '',
-            citations: []
-          }
+          data: researchData
         })
       });
 
@@ -84,4 +88,5 @@ export function useResearch() {
   };
 
   return { optimizeAndSearch, isOptimizing };
-} 
+}
+

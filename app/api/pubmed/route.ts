@@ -1,31 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { searchPubMed } from '@/lib/utils/pubmed';
 
-export const maxDuration = 60;
+export const maxDuration = 300;
+export const runtime = 'edge';
 
 export async function POST(request: NextRequest) {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 58000);
-
+  console.log('[PubMed API] POST request started');
   try {
     const { keywords } = await request.json();
+    console.log('[PubMed API] Received keywords:', keywords);
 
     if (!keywords?.length) {
-      clearTimeout(timeoutId);
+      console.warn('[PubMed API] No keywords provided');
       return NextResponse.json(
         { error: 'Keywords are required' },
         { status: 400 }
       );
     }
 
+    console.log('[PubMed API] Initiating PubMed search...');
     const articles = await searchPubMed(keywords);
-    clearTimeout(timeoutId);
+    console.log('[PubMed API] PubMed search completed. Articles found:', articles.length);
     return NextResponse.json({ articles });
-  } catch (error: unknown) {
-    clearTimeout(timeoutId);
-    if (error instanceof Error && error.name === 'AbortError') {
-      return NextResponse.json({ error: 'Request timeout' }, { status: 408 });
-    }
+  } catch (error) {
+    console.error('[PubMed API] Failed to search PubMed:', error);
     return NextResponse.json(
       { error: 'Failed to search PubMed' },
       { status: 500 }

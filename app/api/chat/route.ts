@@ -1,4 +1,5 @@
-import OpenAI from 'openai';
+import { streamText } from 'ai';
+import { openai } from '@ai-sdk/openai';
 import { nanoid } from 'nanoid';
 import { searchPubMed } from '@/lib/utils/pubmed';
 import { extractKeywords } from '@/lib/utils/keywords';
@@ -6,90 +7,96 @@ import { uploadResearchData } from '@/lib/utils/storage';
 import { OCCUPATION_PROMPTS, type Occupation } from '@/lib/utils/openai';
 import type { Article } from '@/lib/types';
 
-const openaiClient = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
-
+export const maxDuration = 300;
 export const runtime = 'edge';
 export const preferredRegion = ['iad1'];
-export const maxDuration = 300; // 5 minutes timeout
 
-// Add a new constant for non-search prompts
+// For non-search prompts (if needed)
 const BASIC_PROMPTS: Record<Occupation, string> = {
   "Researcher": `You are a research expert providing clear, direct responses based on your knowledge.
-    Focus on providing accurate, well-structured answers without citations.
-    Maintain academic depth while being concise and accessible.`,
+Focus on providing accurate, well-structured answers without citations.
+Maintain academic depth while being concise and accessible.`,
   
   "PhD Physician": `You are a medical expert providing clear, direct responses based on your knowledge.
-    Focus on providing accurate, well-structured medical insights without citations.
-    Maintain clinical depth while being concise and accessible.`,
+Focus on providing accurate, well-structured medical insights without citations.
+Maintain clinical depth while being concise and accessible.`,
   
   "Psychologist": `You are a psychology expert providing clear, direct responses based on your knowledge.
-    Focus on providing accurate, well-structured psychological insights without citations.
-    Maintain clinical depth while being concise and accessible.`
+Focus on providing accurate, well-structured psychological insights without citations.
+Maintain clinical depth while being concise and accessible.`
 };
 
 export async function POST(req: Request) {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 290000); // 4.8 minutes
-
+  console.log('[Chat API] POST request started');
   try {
-    console.log('[Chat API] Received request');
     const { messages, occupation = 'Researcher', responseLength = 'standard' } = await req.json();
+    console.log('[Chat API] Request payload:', { messages, occupation, responseLength });
+    
+    // Get the user's latest message and its metadata
     const userMessage = messages[messages.length - 1].content;
     const withSearch = messages[messages.length - 1].metadata?.withSearch ?? true;
     const questionId = nanoid();
     const occupationType = occupation as Occupation;
+    const searchSource = messages[messages.length - 1].metadata?.searchSource ?? 'both';
+    console.log('[Chat API] Selected search source:', searchSource);
 
-    // Get previous conversation messages
-    const conversationHistory = messages
-      .slice(0, -1) // Exclude current message
-      .map((m: { role: string; content: string }) => ({ 
-        role: m.role, 
-        content: m.content 
-      }));
+    // Build conversation history (exclude the latest message)
+    const conversationHistory = messages.slice(0, -1).map((m: { role: string; content: string }) => ({
+      role: m.role,
+      content: m.content
+    }));
+    console.log('[Chat API] Conversation history length:', conversationHistory.length);
 
-    let allArticles: Article[] = [];
-
-    // Only perform search and use research prompts if search is enabled
     if (withSearch) {
-      // Extract keywords and search both sources
+      console.log('[Chat API] With search enabled. Extracting keywords...');
       const keywords = await extractKeywords(userMessage);
+      console.log('[Chat API] Extracted keywords:', keywords);
       
-      // Search PubMed
-      try {
-        const pubmedArticles = await searchPubMed(keywords);
-        console.log(`[Articles] PubMed articles found: ${pubmedArticles.length}`);
-        allArticles = [...pubmedArticles];
-      } catch (error) {
-        console.error('[Articles] PubMed search failed:', error);
-      }
+      let allArticles: Article[] = [];
 
-      // Search arXiv
-      try {
-        // For Edge Runtime, we can use Request.url to get the base URL
-        const url = new URL(req.url);
-        const arxivUrl = new URL('/api/arxiv', url.origin);
-        arxivUrl.searchParams.set('q', keywords.join(' '));
-
-        const arxivRes = await fetch(arxivUrl, { 
-          headers: { 'Content-Type': 'application/json' }
-        });
-
-        if (arxivRes.ok) {
-          const arxivArticles = await arxivRes.json();
-          console.log(`[Articles] arXiv articles found: ${arxivArticles.length}`);
-          allArticles = [...allArticles, ...arxivArticles];
-        } else {
-          console.warn('[Articles] arXiv search failed');
+      // Search PubMed if applicable
+      if (searchSource === 'pubmed' || searchSource === 'both') {
+        try {
+          console.log('[Chat API] Searching PubMed...');
+          const pubmedArticles = await searchPubMed(keywords);
+          console.log('[Chat API] PubMed articles found:', pubmedArticles.length);
+          allArticles = allArticles.concat(pubmedArticles);
+        } catch (error) {
+          console.error('[Chat API] PubMed search failed:', error);
         }
-      } catch (error) {
-        console.error('[Articles] arXiv search failed:', error);
       }
+      
+      // Search arXiv if applicable
+      if (searchSource === 'arxiv' || searchSource === 'both') {
+        try {
+          console.log('[Chat API] Searching arXiv...');
+          const url = new URL(req.url);
+          const arxivUrl = new URL('/api/arxiv', url.origin);
+          arxivUrl.searchParams.set('q', keywords.join(' '));
+          console.log('[Chat API] arXiv URL:', arxivUrl.toString());
+  
+          const arxivRes = await fetch(arxivUrl, { 
+            headers: { 'Content-Type': 'application/json' }
+          });
+  
+          if (arxivRes.ok) {
+            const arxivData = await arxivRes.json();
+            const arxivArticles = Array.isArray(arxivData.articles)
+              ? arxivData.articles
+              : (Array.isArray(arxivData) ? arxivData : []);
+            console.log('[Chat API] arXiv articles found:', arxivArticles.length);
+            allArticles = allArticles.concat(arxivArticles);
+          } else {
+            console.warn('[Chat API] arXiv search failed with status:', arxivRes.status);
+          }
+        } catch (error) {
+          console.error('[Chat API] arXiv search failed:', error);
+        }
+      }
+  
+      console.log('[Chat API] Total articles after merge:', allArticles.length);
 
-      console.log(`[Articles] Total articles after merge: ${allArticles.length}`);
-
-      // Proceed with chat completion even if no articles found
+      console.log('[Chat API] Uploading research data with questionId:', questionId);
       await uploadResearchData(questionId, {
         question: userMessage,
         optimizedQuestion: userMessage,
@@ -100,59 +107,77 @@ export async function POST(req: Request) {
         answer: '',
         citations: []
       });
+      console.log('[Chat API] Research data uploaded');
 
-      // Create completion with research prompts and articles
-      const completion = await openaiClient.chat.completions.create({
-        model: 'o3-mini',
-        messages: [
-          ...conversationHistory,
-          { 
-            role: 'user',
-            content: `${OCCUPATION_PROMPTS[occupationType]}
-              ${allArticles.length > 0 ? `Consider these relevant academic sources to support your analysis:
-              ${allArticles.map(a => `- ${a.authors[0]} et al. (${a.published}) - "${a.title}"`).join('\n')}` : ''}
+      console.log('[Chat API] Initiating chat completion with research prompts');
+      // Build the research prompt using your occupation-specific prompt and the research data
+      const researchPrompt = `${OCCUPATION_PROMPTS[occupationType]}
 
-              Drawing from ${allArticles.length > 0 ? 'these sources and ' : ''}your expertise, please address:
+Consider these relevant academic sources to support your analysis:
+${
+  allArticles.length > 0 
+    ? allArticles.map(a => {
+        const abstractSnippet = a.abstract ? a.abstract.slice(0, 150) + '...' : 'No abstract available';
+        return `- ${a.authors[0]} et al. (${a.published}) - "${a.title}"
+   Summary: ${abstractSnippet}`;
+      }).join('\n')
+    : 'No sources found.'
+}
 
-              ${userMessage}`
-          }
-        ],
-        reasoning_effort: "high"
-      } as any);
+Drawing from ${allArticles.length > 0 ? 'these sources and ' : ''}your expertise, please address:
 
-      // Return response with research headers
-      const response = new Response(completion.choices[0].message.content);
-      response.headers.set('X-Question-ID', questionId);
-      response.headers.set('X-Study-Count', allArticles.length.toString());
-      response.headers.set('X-Search-Enabled', 'true');
-
-      clearTimeout(timeoutId); // Clear timeout on success
-      return response;
-
+${userMessage}`;
+      
+      // Combine previous conversation with the new research prompt
+      const fullPrompt = [
+        ...conversationHistory,
+        {
+          role: 'user',
+          content: researchPrompt
+        }
+      ];
+      
+      console.log('[Chat API] Full prompt sent to OpenAI:', JSON.stringify(fullPrompt, null, 2));
+      
+      const result = streamText({
+        model: openai('o3-mini'),
+        messages: fullPrompt,
+      });
+      
+      // Return the stream using the SDK helper and include custom headers
+      return result.toDataStreamResponse({
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+          'X-Question-ID': questionId,
+          'X-Study-Count': allArticles.length.toString(),
+          'X-Search-Enabled': 'true'
+        }
+      });
     } else {
-      // Simple completion with basic prompt
-      const completion = await openaiClient.chat.completions.create({
-        model: 'o3-mini',
-        messages: [
-          {
-            role: 'system',
-            content: BASIC_PROMPTS[occupationType]
-          },
-          ...conversationHistory,
-          { role: 'user', content: userMessage }
-        ],
-        reasoning_effort: "high"
-      } as any);
-
-      return new Response(completion.choices[0].message.content);
+      console.log('[Chat API] With search disabled. Processing basic prompt...');
+      const basicPrompt = [
+        ...conversationHistory,
+        {
+          role: 'user',
+          content: userMessage
+        }
+      ];
+      console.log('[Chat API] Full prompt sent to OpenAI (basic):', JSON.stringify(basicPrompt, null, 2));
+      
+      const result = streamText({
+        model: openai('o3-mini'),
+        messages: basicPrompt,
+      });
+      
+      return result.toDataStreamResponse();
     }
-
-  } catch (error: unknown) {
-    clearTimeout(timeoutId);
+  } catch (error) {
     console.error('[Chat API] Error:', error);
-    if (error instanceof Error && error.name === 'AbortError') {
-      return new Response('Request timeout', { status: 408 });
-    }
-    return new Response('Internal Server Error', { status: 500 });
+    return new Response('data: {"error": "Internal Server Error"}\n\n', {
+      status: 500,
+      headers: { 'Content-Type': 'text/event-stream' }
+    });
   }
 }

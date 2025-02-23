@@ -10,12 +10,14 @@
     {
       "src": "/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ],
   "routes": [
@@ -30,6 +32,20 @@
     {
       "path": "/research/:questionId",
       "name": "Research Details"
+    }
+  ],
+  "orientation": "any",
+  "categories": ["productivity", "research", "medical"],
+  "shortcuts": [
+    {
+      "name": "New Research",
+      "url": "/",
+      "description": "Start a new research query"
+    },
+    {
+      "name": "Research History",
+      "url": "/questions",
+      "description": "View research history"
     }
   ]
 }

@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { fetchArxiv } from '@/lib/utils/arxiv';
 
 export async function GET(req: Request) {
+  console.log('[arXiv API] GET request started. URL:', req.url);
   const { searchParams } = new URL(req.url);
   const query = searchParams.get('q');
 
@@ -12,6 +13,7 @@ export async function GET(req: Request) {
   }
 
   try {
+    console.log('[arXiv API] Fetching articles for query:', query);
     const articles = await fetchArxiv(query);
     console.log(`[arXiv API] Successfully returned ${articles.length} articles for query: "${query}"`);
     return NextResponse.json(articles);

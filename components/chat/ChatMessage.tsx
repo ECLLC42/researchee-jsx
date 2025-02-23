@@ -68,6 +68,16 @@ export default function ChatMessage({ message }: ChatMessageProps) {
           >
             {message.content}
           </ReactMarkdown>
+          {message.metadata?.searchSource && (
+            <div className="mt-2 text-xs italic text-gray-400">
+              Search Source: {message.metadata.searchSource}
+            </div>
+          )}
+          {message.metadata?.citations && message.metadata.citations.length > 0 && (
+            <div className="mt-2 text-xs text-gray-400">
+              Citations: {message.metadata.citations.length}
+            </div>
+          )}
         </div>
       </div>
     </MotionDiv>

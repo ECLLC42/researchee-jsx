@@ -1,13 +1,25 @@
 import { NextResponse } from 'next/server';
-import { checkArticleRelevance } from '@/lib/utils/relevance';
-import type { PubMedArticle } from '@/lib/utils/pubmed';
+import { filterRelevantArticles } from '@/lib/utils/relevance';
+import type { Article } from '@/lib/types';
 
+export const maxDuration = 300;
 export const runtime = 'edge'; // Use edge runtime for better performance
 
 export async function POST(req: Request) {
+  console.log('[Relevance API] POST request started');
   try {
-    const { messages } = await req.json();
+    const { messages, articles } = await req.json();
+    console.log('[Relevance API] Received messages:', messages);
+    console.log('[Relevance API] Processing articles:', articles.length);
     
+    // Extract the query from the last user message
+    const query = messages[messages.length - 1].content;
+    
+    // Filter relevant articles
+    const relevantArticles = filterRelevantArticles(query, articles);
+    console.log('[Relevance API] Filtered to relevant articles:', relevantArticles.length);
+
+    // Send request to OpenAI API
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -15,23 +27,29 @@ export async function POST(req: Request) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-4o-mini',
         messages,
-        temperature: 0.7,
-        max_tokens: 500, // Reduce tokens to speed up response
-        timeout: 15000, // 15 second timeout
+        temperature: 0.9,
+        max_tokens: 750,
+        presence_penalty: 0.6,
+        frequency_penalty: 0.3
       }),
     });
 
     if (!response.ok) {
+      console.error('[Relevance API] OpenAI API responded with non-OK status:', response.status);
       throw new Error(`OpenAI API error: ${response.status}`);
     }
 
     const data = await response.json();
+    console.log('[Relevance API] OpenAI Response:', data);
     
-    return NextResponse.json(data);
+    return NextResponse.json({ 
+      completion: data,
+      relevantArticles 
+    });
   } catch (error) {
-    console.error('[Relevance] Error:', error);
+    console.error('[Relevance API] Error:', error);
     return NextResponse.json(
       { error: 'Processing failed' },
       { status: 500 }

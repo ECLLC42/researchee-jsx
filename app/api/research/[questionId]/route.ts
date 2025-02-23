@@ -1,43 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getResearchData } from '@/lib/utils/storage';
 
+export const maxDuration = 300;
+export const runtime = 'edge';
+
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ questionId: string }> }
+  { params }: { params: { questionId: string } }
 ) {
   try {
-    const { questionId } = await params;
+    const { questionId } = params;
+    console.log('[Research GET API] GET request started for questionId:', questionId);
     
-    // Add retry logic with timeout
-    let retries = 3;
-    let researchData = null;
+    const researchData = await getResearchData(questionId);
     
-    while (retries > 0) {
-      try {
-        researchData = await getResearchData(questionId);
-        if (researchData) break;
-      } catch (error) {
-        console.log(`Attempt ${4 - retries} failed, retrying...`);
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second between retries
-        retries--;
-      }
-    }
-
     if (!researchData) {
+      console.warn('[Research GET API] Research data not found');
       return NextResponse.json(
-        { error: 'Research data not found after multiple attempts' },
+        { error: 'Research data not found' },
         { status: 404 }
       );
     }
     
+    console.log('[Research GET API] Returning research data');
     return NextResponse.json({
       articles: researchData.articles,
       keywords: researchData.keywords,
       timestamp: researchData.timestamp,
-      question: researchData.question
+      question: researchData.question,
+      optimizedQuestion: researchData.optimizedQuestion,
+      occupation: researchData.occupation,
+      answer: researchData.answer,
+      citations: researchData.citations
     });
   } catch (error) {
-    console.error('Error in research route:', error);
+    console.error('[Research GET API] Error in research route:', error);
     return NextResponse.json(
       { error: 'Failed to fetch research data' },
       { status: 500 }

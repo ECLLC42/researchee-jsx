@@ -6,9 +6,11 @@ const openai = new OpenAI({
 });
 
 const KEYWORD_EXTRACTION_PROMPT = `You are an expert in extracting core search terms relevant to academic research.
-Extract EXACTLY 3-4 single words most crucial to the topic. Make sure they are relevant to the users question.
+Extract EXACTLY 4-5 key search terms or phrases crucial to the topic. Include both specific and broader related terms.
 Avoid general, meta, or stop words. These words will be put into a pubmed search query, so make sure they are appropriate.
-Output format: 'word1, word2, word3[, word4]'`;
+Output format: 'term1, term2, term3, term4[, term5]'
+Example: For "why do black holes emit hawking radiation", output might be:
+"hawking radiation, black hole evaporation, quantum mechanics, thermal emission, spacetime"`;
 
 export async function extractKeywords(optimizedQuestion: string): Promise<string[]> {
   try {
@@ -28,7 +30,8 @@ Extract keywords from: ${optimizedQuestion}`
     if (!content) return [];
 
     const keywords = content.split(',').map((w: string) => w.trim());
-    return keywords.slice(0, 4); // Limit to 4 keywords
+    // Remove leading/trailing quotes from each keyword and limit to 4 results
+    return keywords.map(keyword => keyword.replace(/^"+|"+$/g, '').trim()).slice(0, 4);
   } catch (error) {
     console.error('Error extracting keywords:', error);
     throw error;
