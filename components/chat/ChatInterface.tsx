@@ -6,6 +6,7 @@ import ChatInput from '@/components/chat/ChatInput';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import Link from 'next/link';
 import { ArticleCard } from '@/components/ui/ArticleCard';
+import { SaveSessionDialog } from '../ui/SaveSessionDialog';
 
 export default function ChatInterface() {
   const {
@@ -23,6 +24,11 @@ export default function ChatInterface() {
   console.log('[Chat] State:', { isLoading, messages, articles });
 
   const hasArticles = Array.isArray(articles) && articles.length > 0;
+
+  const handleSaveSession = () => {
+    // Add save logic here
+    console.log('Saving session...');
+  };
 
   return (
     <div className="flex flex-col h-full pb-[200px]">
@@ -77,12 +83,17 @@ export default function ChatInterface() {
 
       {/* Input Section */}
       <div className="flex-shrink-0">
-        <ChatInput
-          onSend={handleSubmit}
-          input={input}
-          handleInputChange={handleInputChange}
-          disabled={isLoading || isFetchingArticles}
-        />
+        <div className="p-4 border-t border-gray-700">
+          <div className="flex gap-2 mb-4">
+            <SaveSessionDialog onConfirm={handleSaveSession} />
+          </div>
+          <ChatInput
+            onSend={handleSubmit}
+            input={input}
+            handleInputChange={handleInputChange}
+            disabled={isLoading || isFetchingArticles}
+          />
+        </div>
       </div>
     </div>
   );
