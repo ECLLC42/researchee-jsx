@@ -83,9 +83,50 @@ export function useChat() {
     chatHelpers.setInput('');
   };
 
+  // Add submitQuery function for programmatic submissions
+  const submitQuery = (content: string, options?: { 
+    data?: {
+      occupation: Occupation;
+      responseLength: ResponseLength;
+      withSearch: boolean;
+      searchSource: 'pubmed' | 'arxiv' | 'both';
+    }
+  }) => {
+    if (!options?.data?.withSearch) {
+      setArticles([]);
+      setError(null);
+      setIsFetchingArticles(false);
+    }
+
+    // First set the input content
+    chatHelpers.setInput(content);
+    
+    // Then use the internal methods from the AI SDK
+    chatHelpers.append({
+      id: nanoid(),
+      role: 'user',
+      content: content,
+      createdAt: new Date()
+    });
+    
+    // Trigger the chat completion with proper options
+    chatHelpers.reload({
+      body: {
+        occupation: options?.data?.occupation || 'Researcher',
+        responseLength: options?.data?.responseLength || 'standard',
+        withSearch: options?.data?.withSearch ?? true,
+        searchSource: options?.data?.searchSource || 'both'
+      }
+    });
+    
+    // Clear the input after submission
+    chatHelpers.setInput('');
+  };
+
   return {
     ...chatHelpers,
     handleSubmit,
+    submitQuery,
     articles,
     questionId,
     error,

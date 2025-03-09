@@ -2,13 +2,12 @@
 
 import { PaperAirplaneIcon, ChevronDownIcon, CheckIcon } from '@heroicons/react/24/solid';
 import { useState, useRef, useEffect } from 'react';
-import type { Occupation, ResponseLength } from '@/lib/types';
+import type { Occupation } from '@/lib/types';
 
 interface ChatInputProps {
   onSend: (e: React.FormEvent<HTMLFormElement>, options?: { 
     data?: {
       occupation: Occupation;
-      responseLength: ResponseLength;
       withSearch: boolean;
       searchSource: 'pubmed' | 'arxiv' | 'both';
     }
@@ -16,16 +15,17 @@ interface ChatInputProps {
   input: string;
   handleInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   disabled?: boolean;
+  saveSessionButton?: React.ReactNode;
 }
 
 export default function ChatInput({ 
   onSend, 
   input, 
   handleInputChange, 
-  disabled 
+  disabled,
+  saveSessionButton
 }: ChatInputProps) {
   const [occupation, setOccupation] = useState<Occupation>('Researcher');
-  const [responseLength, setResponseLength] = useState<ResponseLength>('standard');
   const [withSearch, setWithSearch] = useState(true);
   const [searchSource, setSearchSource] = useState<'pubmed' | 'arxiv' | 'both'>('both');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -36,7 +36,6 @@ export default function ChatInput({
       onSend(e, {
         data: {
           occupation,
-          responseLength,
           withSearch,
           searchSource
         }
@@ -80,18 +79,18 @@ export default function ChatInput({
   }, []);
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-gray-950/80 backdrop-blur-sm border-t border-gray-800">
-      <div className="max-w-4xl mx-auto px-4 pb-6 pt-4">
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
-            <div className="relative w-full sm:w-auto">
-              <ChevronDownIcon className="absolute right-3 top-3 w-4 h-4 text-gray-400 pointer-events-none" />
+    <div className="w-full bg-gray-950/80 backdrop-blur-sm rounded-xl border border-gray-800">
+      <div className="w-full px-4 py-6">
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="flex flex-wrap sm:flex-nowrap justify-between gap-2">
+            <div className="relative w-[calc(50%-4px)] sm:w-auto sm:flex-1">
+              <ChevronDownIcon className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               <select
                 value={occupation}
                 onChange={(e) => setOccupation(e.target.value as Occupation)}
-                className="bg-gray-800 border border-gray-700 rounded-lg pl-4 pr-10 py-2.5 text-gray-200 
-                  appearance-none w-full sm:w-auto hover:border-gray-600 focus:border-blue-500/50
-                  transition-colors text-center"
+                className="bg-gray-800/90 border border-gray-700 rounded-lg pl-3 pr-8 py-2.5 text-gray-200 
+                  appearance-none w-full hover:border-blue-500/40 focus:border-blue-500/60 
+                  transition-colors text-center text-sm h-12"
               >
                 <option value="Researcher">🔬 Researcher</option>
                 <option value="PhD Physician">👨‍⚕️ PhD Physician</option>
@@ -99,28 +98,14 @@ export default function ChatInput({
               </select>
             </div>
 
-            <div className="relative w-full sm:w-auto">
-              <ChevronDownIcon className="absolute right-3 top-3 w-4 h-4 text-gray-400 pointer-events-none" />
-              <select
-                value={responseLength}
-                onChange={(e) => setResponseLength(e.target.value as ResponseLength)}
-                className="bg-gray-800 border border-gray-700 rounded-lg pl-4 pr-10 py-2.5 text-gray-200 
-                  appearance-none w-full sm:w-auto hover:border-gray-600 focus:border-blue-500/50
-                  transition-colors text-center"
-              >
-                <option value="standard">📝 Standard</option>
-                <option value="extended">📚 Extended</option>
-              </select>
-            </div>
-
-            <div className="relative w-full sm:w-auto">
-              <ChevronDownIcon className="absolute right-3 top-3 w-4 h-4 text-gray-400 pointer-events-none" />
+            <div className="relative w-[calc(50%-4px)] sm:w-auto sm:flex-1">
+              <ChevronDownIcon className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               <select
                 value={searchSource}
                 onChange={(e) => setSearchSource(e.target.value as 'pubmed' | 'arxiv' | 'both')}
-                className="bg-gray-800 border border-gray-700 rounded-lg pl-4 pr-10 py-2.5 text-gray-200 
-                  appearance-none w-full sm:w-auto hover:border-gray-600 focus:border-blue-500/50
-                  transition-colors text-center"
+                className="bg-gray-800/90 border border-gray-700 rounded-lg pl-3 pr-8 py-2.5 text-gray-200 
+                  appearance-none w-full hover:border-blue-500/40 focus:border-blue-500/60 
+                  transition-colors text-center text-sm h-12"
               >
                 <option value="both">🔍 Both APIs</option>
                 <option value="pubmed">🏥 PubMed</option>
@@ -128,25 +113,23 @@ export default function ChatInput({
               </select>
             </div>
 
-            <div className="w-full sm:w-auto text-center">
-              <button
-                type="button"
-                onClick={() => setWithSearch(!withSearch)}
-                className={`flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg border w-full sm:w-auto
-                  ${withSearch 
-                    ? 'bg-blue-500/20 border-blue-400/50 text-blue-300 hover:bg-blue-500/30'
-                    : 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700'
-                  } transition-all duration-200`}
-              >
-                {withSearch ? '🔍' : '🚫'} 
-                <span className="hidden sm:inline">
-                  {withSearch ? 'Search Enabled' : 'Search Disabled'}
-                  <div className={`inline-flex items-center justify-center w-4 h-4 ml-2 border ${withSearch ? 'border-blue-400' : 'border-gray-500'}`}>
-                    {withSearch && <CheckIcon className="w-3 h-3" />}
-                  </div>
-                </span>
-                <span className="sm:hidden">{withSearch ? 'Search On' : 'Search Off'}</span>
-              </button>
+            <button
+              type="button"
+              onClick={() => setWithSearch(!withSearch)}
+              className={`w-[calc(50%-4px)] sm:w-auto sm:flex-1 flex items-center justify-center gap-1 rounded-lg border h-12
+                ${withSearch 
+                  ? 'bg-blue-600/30 border-blue-500/50 text-blue-300 hover:bg-blue-600/40'
+                  : 'bg-gray-800/90 border-gray-700 text-gray-400 hover:bg-gray-700/90'
+                } transition-all duration-200`}
+            >
+              {withSearch ? '🔍' : '🚫'} 
+              <span className="text-sm">
+                {withSearch ? 'Search On' : 'Search Off'}
+              </span>
+            </button>
+            
+            <div className="w-[calc(50%-4px)] sm:w-auto sm:flex-1 h-12 flex items-center justify-center">
+              {saveSessionButton}
             </div>
           </div>
 

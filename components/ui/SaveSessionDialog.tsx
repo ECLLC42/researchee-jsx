@@ -13,7 +13,12 @@ export function SaveSessionDialog({ onConfirm }: SaveSessionDialogProps) {
   return (
     <Dialog.Root>
       <Dialog.Trigger asChild>
-        <Button>Save Session</Button>
+        <button 
+          className="w-full h-full bg-blue-600 text-white hover:bg-blue-700 rounded-lg 
+                     border border-blue-500 flex items-center justify-center text-sm transition-all"
+        >
+          Save Session
+        </button>
       </Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/50" />

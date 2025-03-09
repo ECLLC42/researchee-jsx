@@ -1,0 +1,1 @@
+export type Occupation = 'Researcher' | 'PhD Physician' | 'Psychologist'; 
