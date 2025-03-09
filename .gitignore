@@ -17,6 +17,7 @@
 # Environment variables
 .env*
 !.env.example
+.env.local
 
 # Misc
 .DS_Store
@@ -34,4 +35,5 @@ yarn-error.log*
 .vscode
 *.swp
 *.swo
+
 
