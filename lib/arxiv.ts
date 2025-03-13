@@ -75,7 +75,7 @@ export async function searchArxiv(query: string, maxResults: number = 10): Promi
     
     console.log('✅ arXiv: Papers processed', { 
       count: papers.length, 
-      titles: papers.slice(0, 2).map(p => p.title.substring(0, 30) + '...') 
+      titles: papers.slice(0, 2).map((p: ArxivPaper) => p.title.substring(0, 30) + '...') 
     });
     
     return papers;
