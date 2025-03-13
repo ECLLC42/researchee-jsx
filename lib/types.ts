@@ -48,6 +48,9 @@ export interface SemanticScholarPaper extends BasePaper {
 // Union type for all paper sources
 export type Paper = ArxivPaper | PubMedPaper | OpenAlexPaper | UnpaywallPaper | CorePaper | SemanticScholarPaper;
 
+// Type alias for Article to maintain compatibility with code that uses this term
+export type Article = Paper;
+
 // Helper functions to identify paper sources
 export function isPubMedPaper(paper: Paper): paper is PubMedPaper {
   return paper.source === 'pubmed';
