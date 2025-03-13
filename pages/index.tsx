@@ -354,13 +354,7 @@ export default function Home() {
           <div className="messages-container">
             {messages.length === 0 ? (
               <div className="welcome-message">
-                <p>👋 Welcome! Ask me anything about research papers.</p>
-                <p>I'll consult arXiv and PubMed to provide informed answers.</p>
-                <p className="mode-hint">
-                  {academicModeEnabled 
-                    ? 'Academic Mode is ON - I\'ll search for relevant papers' 
-                    : 'Academic Mode is OFF - I\'ll answer without paper references'}
-                </p>
+                {/* Removed the welcome message as requested */}
               </div>
             ) : (
               messages.map((msg, index) => (
