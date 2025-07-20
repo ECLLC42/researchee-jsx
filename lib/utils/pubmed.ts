@@ -1,12 +1,12 @@
 import { XMLParser } from 'fast-xml-parser';
-import type { Article } from '@/lib/types';
+import type { Article } from '@/lib/types/index';
 
 const NCBI_BASE_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/";
 const NUM_RESULTS = 10;
 
-export interface PubMedArticle extends Article {
+export type PubMedArticle = Article & {
   source: 'PubMed';
-}
+};
 
 export async function searchPubMed(keywords: string[]): Promise<PubMedArticle[]> {
   if (!keywords.length) {

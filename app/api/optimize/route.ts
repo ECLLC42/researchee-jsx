@@ -19,6 +19,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if OpenAI API key is available
+    if (!process.env.OPENAI_API_KEY) {
+      console.warn('[Optimize API] OpenAI API key not available, returning original question');
+      return NextResponse.json({ optimizedQuestion: question });
+    }
+
     console.log('[Optimize API] Optimizing question...');
     const optimizedQuestion = await optimizeQuestion(question, occupation);
     console.log('[Optimize API] Question optimized:', optimizedQuestion);

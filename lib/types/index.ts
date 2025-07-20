@@ -12,28 +12,41 @@ export interface ChatMessage {
     occupation?: Occupation;
     questionId?: string;
     searchSource?: 'pubmed' | 'arxiv' | 'both';
+    reasoning?: string;
+    responseId?: string;
+    citations?: number;
+  };
+}
+
+export interface ExtendedMessage extends Message {
+  metadata?: {
+    articles?: Article[];
+    originalQuestion?: string;
+    keywords?: string[];
+    occupation?: Occupation;
+    questionId?: string;
+    searchSource?: 'pubmed' | 'arxiv' | 'both';
+    reasoning?: string;
+    responseId?: string;
+    citations?: number;
   };
 }
 
 // Article Types
-export type Article = {
+export interface Article {
   title: string;
   authors: string[];
   published: string;
   abstract: string;
   url: string;
-  source: string;
-};
-
-// Blob Storage Types
-export interface BlobResponse {
-  url: string;
-  pathname: string;
+  source: 'PubMed' | 'arXiv';
 }
 
-// Research Types
+export type Occupation = "Researcher" | "PhD Physician" | "Psychologist";
+export type ResponseLength = "standard" | "extended";
+
+// Research Data Types
 export interface ResearchData {
-  id: string;
   question: string;
   optimizedQuestion: string;
   keywords: string[];
@@ -41,12 +54,14 @@ export interface ResearchData {
   timestamp: string;
   occupation: Occupation;
   answer: string;
-  citations: Article[];
+  citations: string[];
 }
 
-// User Types
-export type Occupation = "Researcher" | "PhD Physician" | "Psychologist";
-export type ResponseLength = 'standard' | 'extended';
+// Blob Storage Types
+export interface BlobResponse {
+  url: string;
+  pathname: string;
+}
 
 // API Response Types
 export interface ApiResponse<T> {
@@ -72,8 +87,4 @@ export interface MessageMetadata {
   searchSource?: 'pubmed' | 'arxiv' | 'both';
   responseLength?: 'short' | 'standard' | 'detailed';
   citations?: string[];
-}
-
-export interface ExtendedMessage extends Message {
-  metadata?: MessageMetadata;
 } 

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { filterRelevantArticles } from '@/lib/utils/relevance';
-import type { Article } from '@/lib/types';
+import type { Article } from '@/lib/types/index';
 
 export const maxDuration = 300;
 export const runtime = 'edge'; // Use edge runtime for better performance

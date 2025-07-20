@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
-import type { Article } from '@/lib/types';
+import type { Article } from '@/lib/types/index';
 
 export type ArticleCardProps = Article;
 

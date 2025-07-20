@@ -1,5 +1,5 @@
 import type { PubMedArticle } from './pubmed';
-import type { Article } from '@/lib/types';
+import type { Article } from '@/lib/types/index';
 
 export function filterRelevantArticles(
   query: string,
@@ -39,13 +39,13 @@ export function filterRelevantArticles(
     // Add source-specific bonuses
     if ('source' in article) {
       // Boost arXiv papers for theoretical/mathematical queries
-      if (article.source === 'arxiv' && 
+      if (article.source === 'arXiv' && 
           (query.toLowerCase().includes('theory') || 
            query.toLowerCase().includes('mathematical'))) {
         score *= 1.2;
       }
       // Boost PubMed papers for medical/clinical queries
-      if (article.source === 'pubmed' && 
+      if (article.source === 'PubMed' && 
           (query.toLowerCase().includes('clinical') || 
            query.toLowerCase().includes('medical'))) {
         score *= 1.2;

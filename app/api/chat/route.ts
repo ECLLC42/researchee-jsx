@@ -1,36 +1,19 @@
-import { streamText } from 'ai';
-import { openai } from '@ai-sdk/openai';
+import { NextRequest, NextResponse } from 'next/server';
 import { nanoid } from 'nanoid';
-import { searchPubMed } from '@/lib/utils/pubmed';
 import { extractKeywords } from '@/lib/utils/keywords';
+import { searchPubMed } from '@/lib/utils/pubmed';
 import { uploadResearchData } from '@/lib/utils/storage';
-import { OCCUPATION_PROMPTS, type Occupation } from '@/lib/utils/openai';
-import type { Article } from '@/lib/types';
+import { createResponseWithReasoning } from '@/lib/utils/openai';
+import type { Article, Occupation } from '@/lib/types/index';
 
 export const maxDuration = 300;
 export const runtime = 'edge';
-export const preferredRegion = ['iad1'];
-
-// For non-search prompts (if needed)
-const BASIC_PROMPTS: Record<Occupation, string> = {
-  "Researcher": `You are a research expert providing clear, direct responses based on your knowledge.
-Focus on providing accurate, well-structured answers without citations.
-Maintain academic depth while being concise and accessible.`,
-  
-  "PhD Physician": `You are a medical expert providing clear, direct responses based on your knowledge.
-Focus on providing accurate, well-structured medical insights without citations.
-Maintain clinical depth while being concise and accessible.`,
-  
-  "Psychologist": `You are a psychology expert providing clear, direct responses based on your knowledge.
-Focus on providing accurate, well-structured psychological insights without citations.
-Maintain clinical depth while being concise and accessible.`
-};
 
 export async function POST(req: Request) {
   console.log('[Chat API] POST request started');
   try {
-    const { messages, occupation = 'Researcher', responseLength = 'standard' } = await req.json();
-    console.log('[Chat API] Request payload:', { messages, occupation, responseLength });
+    const { messages, occupation = 'Researcher', responseLength = 'standard', showReasoning = false } = await req.json();
+    console.log('[Chat API] Request payload:', { messages, occupation, responseLength, showReasoning });
     
     // Get the user's latest message and its metadata
     const userMessage = messages[messages.length - 1].content;
@@ -47,13 +30,13 @@ export async function POST(req: Request) {
     }));
     console.log('[Chat API] Conversation history length:', conversationHistory.length);
 
+    let allArticles: Article[] = [];
+
     if (withSearch) {
       console.log('[Chat API] With search enabled. Extracting keywords...');
       const keywords = await extractKeywords(userMessage);
       console.log('[Chat API] Extracted keywords:', keywords);
       
-      let allArticles: Article[] = [];
-
       // Search PubMed if applicable
       if (searchSource === 'pubmed' || searchSource === 'both') {
         try {
@@ -108,76 +91,50 @@ export async function POST(req: Request) {
         citations: []
       });
       console.log('[Chat API] Research data uploaded');
-
-      console.log('[Chat API] Initiating chat completion with research prompts');
-      // Build the research prompt using your occupation-specific prompt and the research data
-      const researchPrompt = `${OCCUPATION_PROMPTS[occupationType]}
-
-Consider these relevant academic sources to support your analysis:
-${
-  allArticles.length > 0 
-    ? allArticles.map(a => {
-        const abstractSnippet = a.abstract ? a.abstract.slice(0, 150) + '...' : 'No abstract available';
-        return `- ${a.authors[0]} et al. (${a.published}) - "${a.title}"
-   Summary: ${abstractSnippet}`;
-      }).join('\n')
-    : 'No sources found.'
-}
-
-Drawing from ${allArticles.length > 0 ? 'these sources and ' : ''}your expertise, please address:
-
-${userMessage}`;
-      
-      // Combine previous conversation with the new research prompt
-      const fullPrompt = [
-        ...conversationHistory,
-        {
-          role: 'user',
-          content: researchPrompt
-        }
-      ];
-      
-      console.log('[Chat API] Full prompt sent to OpenAI:', JSON.stringify(fullPrompt, null, 2));
-      
-      const result = streamText({
-        model: openai('o3-mini'),
-        messages: fullPrompt,
-      });
-      
-      // Return the stream using the SDK helper and include custom headers
-      return result.toDataStreamResponse({
-        headers: {
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive',
-          'X-Question-ID': questionId,
-          'X-Study-Count': allArticles.length.toString(),
-          'X-Search-Enabled': 'true'
-        }
-      });
-    } else {
-      console.log('[Chat API] With search disabled. Processing basic prompt...');
-      const basicPrompt = [
-        ...conversationHistory,
-        {
-          role: 'user',
-          content: userMessage
-        }
-      ];
-      console.log('[Chat API] Full prompt sent to OpenAI (basic):', JSON.stringify(basicPrompt, null, 2));
-      
-      const result = streamText({
-        model: openai('o3-mini'),
-        messages: basicPrompt,
-      });
-      
-      return result.toDataStreamResponse();
     }
+
+    console.log('[Chat API] Creating response with reasoning...');
+    const response = await createResponseWithReasoning(
+      messages,
+      occupationType,
+      allArticles,
+      showReasoning
+    );
+
+    console.log('[Chat API] Response created:', { 
+      hasReasoning: !!response.reasoning, 
+      contentLength: response.content.length 
+    });
+
+    // Set response headers
+    const headers = new Headers();
+    headers.set('X-Search-Enabled', withSearch.toString());
+    if (withSearch) {
+      headers.set('X-Question-ID', questionId);
+      headers.set('X-Study-Count', allArticles.length.toString());
+    }
+    headers.set('X-Reasoning-Available', (!!response.reasoning).toString());
+
+    return NextResponse.json(
+      {
+        id: nanoid(),
+        role: 'assistant',
+        content: response.content,
+        metadata: {
+          reasoning: response.reasoning,
+          responseId: response.responseId,
+          searchSource: withSearch ? searchSource : null,
+          citations: allArticles.length > 0 ? allArticles.length : null
+        }
+      },
+      { headers }
+    );
+
   } catch (error) {
     console.error('[Chat API] Error:', error);
-    return new Response('data: {"error": "Internal Server Error"}\n\n', {
-      status: 500,
-      headers: { 'Content-Type': 'text/event-stream' }
-    });
+    return NextResponse.json(
+      { error: 'Failed to process request' },
+      { status: 500 }
+    );
   }
 }

@@ -1,5 +1,5 @@
 import { createContext, useContext, ReactNode } from 'react';
-import type { ResearchData, Article, Occupation } from '../types';
+import type { ResearchData, Article, Occupation } from '../types/index';
 
 interface ResearchContextType {
   currentResearch: ResearchData | null;

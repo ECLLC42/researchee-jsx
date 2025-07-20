@@ -1,4 +1,4 @@
-import type { Article, Occupation } from '@/lib/types';
+import type { Article, Occupation } from '@/lib/types/index';
 
 interface ResearchData {
   question: string;

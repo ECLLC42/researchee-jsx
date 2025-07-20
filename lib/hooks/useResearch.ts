@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { API_ENDPOINTS } from '@/lib/constants';
 import { nanoid } from 'nanoid';
-import type { ResearchData, Occupation } from '@/lib/types';
+import type { ResearchData, Occupation } from '@/lib/types/index';
 
 export function useResearch() {
   const [isOptimizing, setIsOptimizing] = useState(false);
