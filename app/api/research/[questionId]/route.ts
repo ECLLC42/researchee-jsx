@@ -1,42 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getResearchData } from '@/lib/utils/storage';
 
-export const maxDuration = 300;
+export const maxDuration = 300; // 5 minutes for research data retrieval
 export const runtime = 'edge';
 
 export async function GET(
-  request: NextRequest,
+  req: NextRequest,
   { params }: { params: { questionId: string } }
 ) {
   try {
     const { questionId } = params;
-    console.log('[Research GET API] GET request started for questionId:', questionId);
+    console.log('[Research API] GET request for questionId:', questionId);
     
     const researchData = await getResearchData(questionId);
     
     if (!researchData) {
-      console.warn('[Research GET API] Research data not found');
+      console.warn('[Research API] No research data found for questionId:', questionId);
       return NextResponse.json(
         { error: 'Research data not found' },
         { status: 404 }
       );
     }
     
-    console.log('[Research GET API] Returning research data');
-    return NextResponse.json({
-      articles: researchData.articles,
-      keywords: researchData.keywords,
-      timestamp: researchData.timestamp,
-      question: researchData.question,
-      optimizedQuestion: researchData.optimizedQuestion,
-      occupation: researchData.occupation,
-      answer: researchData.answer,
-      citations: researchData.citations
-    });
+    console.log('[Research API] Successfully retrieved research data for questionId:', questionId);
+    return NextResponse.json(researchData);
   } catch (error) {
-    console.error('[Research GET API] Error in research route:', error);
+    console.error('[Research API] Error retrieving research data:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch research data' },
+      { error: 'Failed to retrieve research data' },
       { status: 500 }
     );
   }

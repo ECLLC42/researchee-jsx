@@ -6,7 +6,7 @@ import { uploadResearchData } from '@/lib/utils/storage';
 import { createResponseWithReasoning } from '@/lib/utils/openai';
 import type { Article, Occupation } from '@/lib/types/index';
 
-export const maxDuration = 300;
+export const maxDuration = 300; // 5 minutes for long-running research tasks
 export const runtime = 'edge';
 
 export async function POST(req: Request) {
